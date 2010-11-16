@@ -6,6 +6,10 @@ apply {
   apply plugin: 'idea'
 }
 
+ideaProject {
+  javaVersion = '1.6'
+}
+
 dependencies {
   compile group: 'org.apache.ivy', name: 'ivy', version: '2.2.0'
   compile group: 'org.apache.ant', name: 'ant', version: '1.8.1'
