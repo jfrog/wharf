@@ -2,16 +2,13 @@ package org.jfrog.wharf.ivy;
 
 
 import org.apache.ivy.core.IvyPatternHelper;
-import org.apache.ivy.core.cache.ArtifactOrigin;
 import org.apache.ivy.core.module.descriptor.Artifact;
-import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.lock.LockStrategy;
 
 import java.io.File;
-import java.util.Date;
 
 /**
  * @author Tomer Cohen
@@ -45,6 +42,17 @@ public class CacheMetadataHandler implements IvySettingsAware {
     public ModuleRevisionMetadata getModuleRevisionMetadata(ModuleRevisionId mrid) {
         File wharfDataFile = getWharfDataFile(mrid);
         return mrmMarshaller.getModuleRevisionMetadata(wharfDataFile);
+    }
+
+    public ArtifactMetadata getArtifactMetadata(Artifact artifact, int resolverId) {
+        ArtifactMetadata toFind = new ArtifactMetadata(artifact, resolverId);
+        ModuleRevisionMetadata mrm = getModuleRevisionMetadata(artifact.getModuleRevisionId());
+        for (ArtifactMetadata artMd : mrm.artifactMetadata) {
+            if (artMd.equals(toFind)) {
+                return artMd;
+            }
+        }
+        return toFind;
     }
 
     private File getWharfDataFile(ModuleRevisionId mrid) {

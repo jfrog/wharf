@@ -51,24 +51,21 @@ public class WharfCacheManagerTest {
     private Artifact artifact;
 
     private ArtifactOrigin origin;
-    File repositoriesFile;
-
+    private IvySettings settings;
 
     @Before
     public void setUp() throws Exception {
         File f = File.createTempFile("ivycache", ".dir");
         Ivy ivy = new Ivy();
         ivy.configureDefault();
-        IvySettings settings = ivy.getSettings();
+        settings = ivy.getSettings();
         f.delete(); // we want to use the file as a directory, so we delete the file itself
         cacheManager = new WharfCacheManager();
         cacheManager.setSettings(settings);
         cacheManager.setBasedir(f);
-        repositoriesFile = new File(settings.getBaseDir(), ".wharf/resolvers.json");
-        repositoriesFile.mkdirs();
         artifact = createArtifact("org", "module", "rev", "name", "type", "ext");
         origin = new ArtifactOrigin(artifact, true, "/some/where");
-        cacheManager.saveArtifactOrigin(artifact, origin);
+        cacheManager.saveArtifactOrigin(artifact, origin, settings.getDefaultResolver());
     }
 
     @After
@@ -77,7 +74,6 @@ public class WharfCacheManagerTest {
         del.setProject(new Project());
         del.setDir(cacheManager.getRepositoryCacheRoot());
         del.execute();
-        repositoriesFile.delete();
     }
 
     @Test
@@ -92,7 +88,7 @@ public class WharfCacheManagerTest {
 
     @Test
     public void testUniqueness() {
-        cacheManager.saveArtifactOrigin(artifact, origin);
+        cacheManager.saveArtifactOrigin(artifact, origin, settings.getDefaultResolver());
 
         artifact = createArtifact("org1", "module", "rev", "name", "type", "ext");
         ArtifactOrigin found = cacheManager.getSavedArtifactOrigin(artifact);

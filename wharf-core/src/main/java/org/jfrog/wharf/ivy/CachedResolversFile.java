@@ -47,6 +47,10 @@ public class CachedResolversFile {
     public void save() {
         OutputStream stream = null;
         try {
+            File dir = resolversFile.getParentFile();
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
             stream = new FileOutputStream(resolversFile);
             JsonGenerator generator = JacksonFactory.createJsonGenerator(stream);
             generator.writeObject(wharfResolvers);
