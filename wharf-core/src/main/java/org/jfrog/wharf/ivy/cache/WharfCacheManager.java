@@ -641,17 +641,14 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 listener.needArtifact(this, artifact);
             }
             DependencyResolver callingResolver = null;
-            Field[] fields = resourceResolver.getClass().getDeclaredFields();
-            for (Field field : fields) {
-                System.out.println("Field " + field.getName());
-                if (field.getName().startsWith("this$")) {
-                    field.setAccessible(true);
-                    try {
-                        callingResolver = (DependencyResolver) field.get(resourceResolver);
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
+            try {
+                Field field = resourceResolver.getClass().getDeclaredField("this$0");
+                field.setAccessible(true);
+                callingResolver = (DependencyResolver) field.get(resourceResolver);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
             }
             if (callingResolver == null) {
                 callingResolver = settings.getDefaultResolver();
