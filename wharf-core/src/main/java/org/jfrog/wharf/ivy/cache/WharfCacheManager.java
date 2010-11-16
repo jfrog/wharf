@@ -361,7 +361,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
-    void saveArtifactOrigin(Artifact artifact, ArtifactOrigin origin, DependencyResolver dependencyResolver) {
+    public void saveArtifactOrigin(Artifact artifact, ArtifactOrigin origin, DependencyResolver dependencyResolver) {
         WharfResolver resolver;
         if (dependencyResolver == null) {
             resolver = getResolverHandler().getLocalResolver();

@@ -57,7 +57,7 @@ public class ArtifactMetadata {
      * @param artifact the artifact to create the unique key from. Cannot be null.
      * @return the unique prefix key as a string.
      */
-    static String getArtId(Artifact artifact) {
+    public static String getArtId(Artifact artifact) {
         // use the hashcode as a uuid for the artifact (fingers crossed)
         int hashCode = artifact.getId().hashCode();
         // use just some visual cue
