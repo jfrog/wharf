@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.cache;
 
 
 import org.apache.ivy.core.IvyPatternHelper;
@@ -7,6 +7,10 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.lock.LockStrategy;
+import org.jfrog.wharf.ivy.marshall.MrmMarshaller;
+import org.jfrog.wharf.ivy.marshall.MrmMarshallerImpl;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
+import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
 

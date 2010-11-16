@@ -15,14 +15,7 @@
  *  limitations under the License.
  *
  */
-package org.jfrog.wharf.ivy;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+package org.jfrog.wharf.ivy.cache;
 
 import org.apache.ivy.core.RelativeUrlResolver;
 import org.apache.ivy.core.cache.ResolutionCacheManager;
@@ -36,16 +29,17 @@ import org.apache.ivy.plugins.parser.ParserSettings;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 /**
- * Keep traces of the usage of a ParserSettings in order to check afterwards that the relevant
- * settings didn't changed.
- * <p>
- * A ParserSettingsMonitor provide a ParserSettings that must be used in place of the orignal one.
- * </p>
- * <p>
- * The current implementation consider that a settings changed iff one of the used variable has
- * changed.
- * </p>
+ * Keep traces of the usage of a ParserSettings in order to check afterwards that the relevant settings didn't changed.
+ * <p> A ParserSettingsMonitor provide a ParserSettings that must be used in place of the orignal one. </p> <p> The
+ * current implementation consider that a settings changed iff one of the used variable has changed. </p>
  */
 class ParserSettingsMonitor {
 
@@ -59,16 +53,15 @@ class ParserSettingsMonitor {
     }
 
     /**
-     * @return The parser settings that must be used in place of the orignal settings
-     * The returned object delegates all the call to the original settings.
+     * @return The parser settings that must be used in place of the orignal settings The returned object delegates all
+     *         the call to the original settings.
      */
     public ParserSettings getMonitoredSettings() {
         return monitoredSettings;
     }
 
     /**
-     * Free the ressource used during the monitoring, keeping only the info
-     * required to evaluate hasChanged.
+     * Free the ressource used during the monitoring, keeping only the info required to evaluate hasChanged.
      */
     public void endMonitoring() {
         monitoredSettings = null;
@@ -76,8 +69,8 @@ class ParserSettingsMonitor {
     }
 
     /**
-     * Check if the newSettings is compatible with the original settings that
-     * has been monitored.  Only the info that was actually used is compared.
+     * Check if the newSettings is compatible with the original settings that has been monitored.  Only the info that
+     * was actually used is compared.
      */
     public boolean hasChanged(ParserSettings newSettings) {
         for (Iterator it = substitutes.entrySet().iterator(); it.hasNext();) {

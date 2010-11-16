@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.cache;
 
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.plugins.parser.ParserSettings;

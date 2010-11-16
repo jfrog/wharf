@@ -1,4 +1,6 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.marshall;
+
+import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
 

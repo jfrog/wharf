@@ -1,8 +1,9 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.marshall;
 
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
+import org.jfrog.wharf.ivy.model.WharfResolver;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,13 +17,13 @@ import java.util.Set;
 /**
  * @author Tomer Cohen
  */
-public class CachedResolversFile {
+public class WharfResolverMarshaller {
 
     private File resolversFile;
     private Set<WharfResolver> wharfResolvers = new HashSet<WharfResolver>();
     private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.json";
 
-    public CachedResolversFile(File baseDir) {
+    public WharfResolverMarshaller(File baseDir) {
         this.resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         if (baseDir.exists()) {
             InputStream stream = null;

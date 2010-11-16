@@ -15,7 +15,11 @@
  *  limitations under the License.
  *
  */
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.cache;
+
+import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
+import org.apache.ivy.plugins.parser.ParserSettings;
+import org.apache.ivy.util.Message;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,16 +27,10 @@ import java.text.ParseException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
-import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
-import org.apache.ivy.plugins.parser.ParserSettings;
-import org.apache.ivy.util.Message;
-
 /**
- * Cache ModuleDescriptors so that when the same module is used twice (in multi-module build for
- * instance), it is parsed only once.
- * This cache is has a limited size, and keep the most recently used entries.
- * The entry in the cache are invalidated if there is a change to one variable
- * used in the module descriptor.
+ * Cache ModuleDescriptors so that when the same module is used twice (in multi-module build for instance), it is parsed
+ * only once. This cache is has a limited size, and keep the most recently used entries. The entry in the cache are
+ * invalidated if there is a change to one variable used in the module descriptor.
  */
 class ModuleDescriptorMemoryCache {
 
@@ -42,6 +40,7 @@ class ModuleDescriptorMemoryCache {
 
     /**
      * Create a cache of the given size
+     *
      * @param size
      */
     public ModuleDescriptorMemoryCache(int size) {
@@ -66,7 +65,7 @@ class ModuleDescriptorMemoryCache {
             ModuleDescriptorProvider mdProvider) throws ParseException, IOException {
         ParserSettingsMonitor settingsMonitor = new ParserSettingsMonitor(ivySettings);
         ModuleDescriptor descriptor = mdProvider.provideModule(
-            settingsMonitor.getMonitoredSettings() , ivyFile, validated);
+                settingsMonitor.getMonitoredSettings(), ivyFile, validated);
         putInCache(ivyFile, settingsMonitor, validated, descriptor);
         return descriptor;
     }
@@ -80,7 +79,7 @@ class ModuleDescriptorMemoryCache {
         if (entry != null) {
             if (entry.isStale(validated, ivySettings)) {
                 Message.debug("Entry is found in the ModuleDescriptorCache but entry should be "
-                    + "reevaluated : " + ivyFile);
+                        + "reevaluated : " + ivyFile);
                 valueMap.remove(ivyFile);
                 return null;
             } else {
@@ -97,7 +96,6 @@ class ModuleDescriptorMemoryCache {
     }
 
 
-
     void putInCache(File url, ParserSettingsMonitor ivySettingsMonitor, boolean validated,
             ModuleDescriptor descriptor) {
         if (maxSize <= 0) {
@@ -110,7 +108,7 @@ class ModuleDescriptorMemoryCache {
             it.next();
             it.remove();
         }
-        valueMap.put(url, new CacheEntry(descriptor , validated, ivySettingsMonitor));
+        valueMap.put(url, new CacheEntry(descriptor, validated, ivySettingsMonitor));
     }
 
 
@@ -119,8 +117,8 @@ class ModuleDescriptorMemoryCache {
         private final boolean validated;
         private final ParserSettingsMonitor parserSettingsMonitor;
 
-        CacheEntry(ModuleDescriptor md , boolean validated,
-                        ParserSettingsMonitor parserSettingsMonitor) {
+        CacheEntry(ModuleDescriptor md, boolean validated,
+                ParserSettingsMonitor parserSettingsMonitor) {
             this.md = md;
             this.validated = validated;
             this.parserSettingsMonitor = parserSettingsMonitor;

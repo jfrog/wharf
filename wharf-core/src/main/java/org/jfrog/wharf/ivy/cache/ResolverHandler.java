@@ -1,8 +1,10 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.cache;
 
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
+import org.jfrog.wharf.ivy.marshall.WharfResolverMarshaller;
+import org.jfrog.wharf.ivy.model.WharfResolver;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -25,16 +27,16 @@ public class ResolverHandler implements IvySettingsAware {
     private final Map<Integer, WharfResolver> resolvers = new HashMap<Integer, WharfResolver>();
     private final Map<Integer, WharfResolver> resolverFromDependencyResolverHash =
             new HashMap<Integer, WharfResolver>();
-    private CachedResolversFile cachedResolversFile;
+    private WharfResolverMarshaller wharfResolverMarshaller;
     private IvySettings settings;
     private static final WharfResolver LOCAL_WHARF = new WharfResolver("local-wharf", "wharf");
 
     public ResolverHandler(File baseDir) {
         this.baseDir = baseDir;
         // populate the set of resolvers from the baseDir/resolvers.json file
-        if (cachedResolversFile == null) {
-            cachedResolversFile = new CachedResolversFile(baseDir);
-            Set<WharfResolver> resolverIds = cachedResolversFile.getWharfResolvers();
+        if (wharfResolverMarshaller == null) {
+            wharfResolverMarshaller = new WharfResolverMarshaller(baseDir);
+            Set<WharfResolver> resolverIds = wharfResolverMarshaller.getWharfResolvers();
             for (WharfResolver wharfResolver : resolverIds) {
                 resolvers.put(wharfResolver.hashCode(), wharfResolver);
             }
@@ -88,7 +90,7 @@ public class ResolverHandler implements IvySettingsAware {
     }
 
     public void saveCacheResolverFile() {
-        cachedResolversFile.save();
+        wharfResolverMarshaller.save();
     }
 
     public void setSettings(IvySettings settings) {

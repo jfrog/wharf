@@ -16,7 +16,7 @@
  * along with Artifactory.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.marshall;
 
 import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonFactory;

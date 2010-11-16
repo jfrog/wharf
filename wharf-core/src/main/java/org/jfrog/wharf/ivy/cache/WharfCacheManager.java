@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.cache;
 
 
 import org.apache.ivy.core.IvyPatternHelper;
@@ -39,6 +39,9 @@ import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
+import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
+import org.jfrog.wharf.ivy.model.WharfResolver;
 
 import java.io.File;
 import java.io.IOException;

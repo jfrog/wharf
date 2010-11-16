@@ -9,6 +9,7 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Delete;
+import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

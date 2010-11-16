@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.model;
 
 import org.apache.ivy.plugins.repository.url.URLRepository;
 import org.apache.ivy.plugins.resolver.AbstractResolver;

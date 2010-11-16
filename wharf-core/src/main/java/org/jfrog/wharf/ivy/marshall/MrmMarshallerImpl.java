@@ -1,8 +1,9 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.marshall;
 
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
+import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
 import java.io.FileInputStream;

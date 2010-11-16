@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.model;
 
 
 import org.apache.ivy.core.cache.ArtifactOrigin;
