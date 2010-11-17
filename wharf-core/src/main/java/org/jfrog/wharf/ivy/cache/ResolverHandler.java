@@ -49,6 +49,9 @@ public class ResolverHandler implements IvySettingsAware {
      */
     public WharfResolver getResolver(DependencyResolver resolver) {
         // find in shortcut
+        if (resolver == null) {
+            return getLocalResolver();
+        }
         int hash = resolver.hashCode();
         if (resolverFromDependencyResolverHash.containsKey(hash)) {
             return resolverFromDependencyResolverHash.get(hash);

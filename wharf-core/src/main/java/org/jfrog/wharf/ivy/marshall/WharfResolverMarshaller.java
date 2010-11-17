@@ -25,7 +25,7 @@ public class WharfResolverMarshaller {
 
     public WharfResolverMarshaller(File baseDir) {
         this.resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
-        if (baseDir.exists()) {
+        if (resolversFile.exists()) {
             InputStream stream = null;
             try {
                 stream = new FileInputStream(resolversFile);
