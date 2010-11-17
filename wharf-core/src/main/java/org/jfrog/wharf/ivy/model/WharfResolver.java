@@ -46,8 +46,8 @@ public class WharfResolver {
             URLRepository repository = (URLRepository) ((URLResolver) resolver).getRepository();
             this.url = repository.getName();
         } else if (resolver instanceof FileSystemResolver) {
-            FileSystemResolver repository = (FileSystemResolver) ((FileSystemResolver) resolver).getRepository();
-            this.url = repository.getArtifactPatterns().get(0).toString();
+            FileSystemResolver fileSystemResolver = (FileSystemResolver) resolver;
+            this.url = fileSystemResolver.getArtifactPatterns().get(0).toString();
         }
     }
 

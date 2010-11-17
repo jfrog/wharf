@@ -94,7 +94,11 @@ public class CacheMetadataHandler implements IvySettingsAware {
             // we need to provide an artifact origin to be sure we do not end up in a stack overflow
             // if the cache pattern is using original name, and the substitution thus trying to get
             // the saved artifact origin value which in turns calls this method
-            return getLockStrategy().lockArtifact(artifact, getWharfDataFile(mrid));
+            File wharfDataFile = getWharfDataFile(mrid);
+            if (!wharfDataFile.getParentFile().exists()) {
+                wharfDataFile.getParentFile().mkdirs();
+            }
+            return getLockStrategy().lockArtifact(artifact, wharfDataFile);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // reset interrupt status
             throw new RuntimeException("operation interrupted");

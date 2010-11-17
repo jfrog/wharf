@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -120,10 +121,19 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     }
 
     public File getIvyFileInCache(ModuleRevisionId mrid, DependencyResolver resolver) {
-        WharfResolver wharfResolver = getResolverHandler().getResolver(resolver);
+        WharfResolver wharfResolver;
+        if (resolver != null) {
+            wharfResolver = getResolverHandler().getResolver(resolver);
+        } else {
+            wharfResolver = getResolverHandler().getLocalResolver();
+        }
         int resolverId = wharfResolver.hashCode();
         Artifact artifact = DefaultArtifact.newIvyArtifact(mrid, null);
-        artifact.getExtraAttributes().put("resolverId", String.valueOf(resolverId));
+        Map<String, String> attributes = new HashMap<String, String>(artifact.getAttributes());
+        attributes.put("resolverId", String.valueOf(resolverId));
+        artifact = new DefaultArtifact(artifact.getModuleRevisionId(),
+                artifact.getPublicationDate(), artifact.getName(), artifact.getType(), artifact.getExt(),
+                artifact.getUrl(), attributes);
         String file = IvyPatternHelper.substitute(DEFAULT_IVY_PATTERN, artifact);
         return new File(getRepositoryCacheRoot(), file);
     }
@@ -320,6 +330,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     public String getArchivePathInCache(Artifact artifact, ArtifactOrigin origin) {
         ArtifactMetadata artifactMetadata = findArtifactMetadata(artifact, origin);
+        if (artifactMetadata == null) {
+            return "";
+        }
         artifact.getExtraAttributes().put("resolverId", artifactMetadata.resolverId);
         if (isOriginalMetadataArtifact(artifact)) {
             return IvyPatternHelper.substitute(DEFAULT_IVY_PATTERN + ".original", artifact, origin);
@@ -644,7 +657,13 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             try {
                 Field field = resourceResolver.getClass().getDeclaredField("this$0");
                 field.setAccessible(true);
-                callingResolver = (DependencyResolver) field.get(resourceResolver);
+                Object callingField = field.get(resourceResolver);
+                if (callingField instanceof DependencyResolver) {
+                    callingResolver = (DependencyResolver) callingField;
+                } else if (callingField instanceof WharfCacheManager) {
+                    WharfCacheManager manager = (WharfCacheManager) callingField;
+                    callingField = manager.getResolverHandler().getLocalResolver();
+                }
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (NoSuchFieldException e) {
