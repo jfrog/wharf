@@ -3,6 +3,7 @@ package org.jfrog.wharf.ivy.cache;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
+import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.marshall.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolver;
 
@@ -100,7 +101,7 @@ public class ResolverHandler implements IvySettingsAware {
     public boolean isActiveResolver(int resolverId) {
         WharfResolver resolver = getResolver(resolverId);
         if (resolver == null) {
-            // TODO: Log ivy errors this is not possible someone ruined the cache
+            Message.error("No resolver for " + resolverId + " This cannot happen, please check cache corruption");
             return false;
         }
         if (settings.getResolverNames().contains(resolver.name)) {

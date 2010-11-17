@@ -1,6 +1,7 @@
 package org.jfrog.wharf.ivy.marshall;
 
 
+import org.apache.ivy.util.Message;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -25,7 +26,7 @@ public class MrmMarshallerImpl implements MrmMarshaller {
                 JsonParser jsonParser = JacksonFactory.createJsonParser(inputStream);
                 return jsonParser.readValueAs(ModuleRevisionMetadata.class);
             } catch (IOException e) {
-                // TODO: Log error in ivy wrong MD file.
+                Message.error("Error loading module revision metadata file: " + file.getAbsolutePath());
                 // Delete the file (send exception if delete impossible) and returns null
                 file.delete();
             } finally {
