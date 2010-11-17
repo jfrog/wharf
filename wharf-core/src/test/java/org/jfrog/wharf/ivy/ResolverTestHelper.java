@@ -29,14 +29,6 @@ import java.util.Arrays;
  *
  */
 public class ResolverTestHelper {
-    static void assertOrganisationEntries(DependencyResolver resolver, String[] orgNames,
-            OrganisationEntry[] orgs) {
-        Assert.assertNotNull(orgs);
-        Assert.assertEquals("invalid organisation entries: unmatched number: expected: "
-                + Arrays.asList(orgNames) + " but was " + Arrays.asList(orgs),
-                orgNames.length, orgs.length);
-        assertOrganisationEntriesContains(resolver, orgNames, orgs);
-    }
 
     public static void assertOrganisationEntriesContains(DependencyResolver resolver, String[] orgNames,
             OrganisationEntry[] orgs) {

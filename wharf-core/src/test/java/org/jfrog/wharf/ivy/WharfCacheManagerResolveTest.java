@@ -80,20 +80,21 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     private WharfCacheManager cacheManager;
 
     public WharfCacheManagerResolveTest() {
-        setupLastModified();
     }
 
     @Before
     public void setUp() throws Exception {
         settings = new IvySettings();
         engine = new ResolveEngine(settings, new EventManager(), new SortEngine(settings));
-        cache = new File("build/cache");
+        cache = new File("build/test/cache");
+        FileUtil.forceDelete(cache);
         data = new ResolveData(engine, new ResolveOptions());
         cache.mkdirs();
         settings.setDefaultCache(cache);
-        settings.setDefaultRepositoryCacheManager(new WharfCacheManager());
+        settings.setDefaultRepositoryCacheManager(new WharfCacheManager("cache", settings, cache));
         cacheManager = (WharfCacheManager) settings.getDefaultRepositoryCacheManager();
         cacheManager.setSettings(settings);
+        setupLastModified();
     }
 
     private void setupLastModified() {
@@ -122,10 +123,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(IVY_PATTERN);
-        resolver
-                .addArtifactPattern(
-                        new File(settings.getBaseDir().getParentFile(), "src") +
-                                "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
+        resolver.addArtifactPattern(new File(settings.getBaseDir().getParentFile(), "src") +
+                "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid,
