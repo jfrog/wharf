@@ -50,15 +50,18 @@ public class CacheMetadataHandler implements IvySettingsAware {
         return mrmMarshaller.getModuleRevisionMetadata(wharfDataFile);
     }
 
-    public ArtifactMetadata getArtifactMetadata(Artifact artifact, int resolverId) {
-        ArtifactMetadata toFind = new ArtifactMetadata(artifact, resolverId);
+    public ArtifactMetadata getArtifactMetadata(Artifact artifact) {
+        ArtifactMetadata toFind = new ArtifactMetadata(artifact);
         ModuleRevisionMetadata mrm = getModuleRevisionMetadata(artifact.getModuleRevisionId());
+        if (mrm == null) {
+            return null;
+        }
         for (ArtifactMetadata artMd : mrm.artifactMetadata) {
             if (artMd.equals(toFind)) {
                 return artMd;
             }
         }
-        return toFind;
+        return null;
     }
 
     private File getWharfDataFile(ModuleRevisionId mrid) {

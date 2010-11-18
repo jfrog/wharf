@@ -50,7 +50,7 @@ public class ResolverHandler implements IvySettingsAware {
     public WharfResolver getResolver(DependencyResolver resolver) {
         // find in shortcut
         if (resolver == null) {
-            return getLocalResolver();
+            throw new IllegalArgumentException("Cannot find null resolver");
         }
         int hash = resolver.hashCode();
         if (resolverFromDependencyResolverHash.containsKey(hash)) {

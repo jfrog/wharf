@@ -26,9 +26,9 @@ public class ArtifactMetadata {
     }
 
     public static int extractResolverId(Artifact artifact, ArtifactOrigin origin) {
-        int originResolverId = extractResolverId(origin.getArtifact());
+        int originResolverId = extractResolverId(artifact);
         if (originResolverId == 0) {
-            return extractResolverId(artifact);
+            return extractResolverId(origin.getArtifact());
         }
         return originResolverId;
     }
@@ -48,7 +48,7 @@ public class ArtifactMetadata {
                 artifact.getName(), artifact.getType(), artifact.getExt(), artifact.getUrl(), extraAttributes);
     }
 
-    public ArtifactMetadata(Artifact artifact, int resolverId) {
+    private ArtifactMetadata(Artifact artifact, int resolverId) {
         this.id = getArtId(artifact);
         this.resolverId = resolverId;
         this.artResolverId = resolverId;

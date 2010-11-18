@@ -37,6 +37,8 @@ import org.apache.ivy.plugins.latest.LatestTimeStrategy;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.FileUtil;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
+import org.jfrog.wharf.ivy.model.WharfResolver;
 import org.jfrog.wharf.util.CacheCleaner;
 import org.junit.After;
 import org.junit.Before;
@@ -115,12 +117,12 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(settings);
+        settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(IVY_PATTERN);
         resolver.addArtifactPattern(new File(settings.getBaseDir().getParentFile(), "src") +
                 "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
-
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid,
                 false), data);
@@ -166,6 +168,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(settings);
+        settings.addResolver(resolver);
+
         File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
         resolver.addIvyPattern(
@@ -174,11 +178,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         resolver.setChecksums("sha1, md5");
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("test", "allright", "1.0");
-        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid,
-                false), data);
+        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
         assertNotNull(rmr);
-        DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(),
-                getDownloadOptions());
+        DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
         assertEquals(4, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
 
         resolver.setChecksums("md5");
@@ -285,7 +287,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals(pubdate, rmr.getPublicationDate());
 
         Artifact[] artifacts = rmr.getDescriptor().getArtifacts("default");
-        File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0], resolver);
+        WharfResolver wharfResolver = cacheManager.getResolverHandler().getResolver(resolver);
+        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolver.getId());
+        File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
         resolver.download(artifacts, getDownloadOptions());
         assertTrue(archiveFileInCache.exists());
         BufferedReader r = new BufferedReader(new FileReader(archiveFileInCache));
@@ -311,7 +315,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals(pubdate, rmr.getPublicationDate());
 
         artifacts = rmr.getDescriptor().getArtifacts("default");
-        archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0], resolver);
+        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolver.getId());
+        archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
 
         assertFalse(archiveFileInCache.exists());
 
@@ -358,7 +363,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         Artifact[] artifacts = rmr.getDescriptor().getArtifacts("default");
         resolver.download(artifacts, getDownloadOptions());
-        File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0], resolver);
+        WharfResolver wharfResolver = cacheManager.getResolverHandler().getResolver(resolver);
+        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolver.getId());
+        File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
         assertTrue(archiveFileInCache.exists());
         BufferedReader r = new BufferedReader(new FileReader(archiveFileInCache));
         assertEquals("before", r.readLine());
@@ -410,6 +417,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(settings);
+        settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
         File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
@@ -435,6 +443,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(settings);
+        settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
         File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
@@ -459,6 +468,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(settings);
+        settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(IVY_PATTERN);
