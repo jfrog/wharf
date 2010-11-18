@@ -10,6 +10,7 @@ import org.apache.ivy.core.settings.IvySettings;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Delete;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +67,9 @@ public class WharfCacheManagerTest {
         cacheManager.setBasedir(f);
         artifact = createArtifact("org", "module", "rev", "name", "type", "ext");
         origin = new ArtifactOrigin(artifact, true, "/some/where");
-        cacheManager.saveArtifactOrigin(artifact, origin, settings.getDefaultResolver());
+        artifact =
+                ArtifactMetadata.fillResolverId(artifact, cacheManager.getResolverHandler().getLocalResolver().getId());
+        cacheManager.saveArtifactOrigin(artifact, origin);
     }
 
     @After
@@ -89,7 +92,7 @@ public class WharfCacheManagerTest {
 
     @Test
     public void testUniqueness() {
-        cacheManager.saveArtifactOrigin(artifact, origin, settings.getDefaultResolver());
+        cacheManager.saveArtifactOrigin(artifact, origin);
 
         artifact = createArtifact("org1", "module", "rev", "name", "type", "ext");
         ArtifactOrigin found = cacheManager.getSavedArtifactOrigin(artifact);

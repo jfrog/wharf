@@ -103,6 +103,9 @@ public class ResolverHandler implements IvySettingsAware {
 
     public boolean isActiveResolver(int resolverId) {
         WharfResolver resolver = getResolver(resolverId);
+        if (resolver.equals(getLocalResolver())) {
+            return true;
+        }
         if (resolver == null) {
             Message.error("No resolver for " + resolverId + " This cannot happen, please check cache corruption");
             return false;

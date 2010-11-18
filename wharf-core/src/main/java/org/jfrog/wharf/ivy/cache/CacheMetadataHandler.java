@@ -6,6 +6,7 @@ import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
+import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.lock.LockStrategy;
 import org.jfrog.wharf.ivy.marshall.MrmMarshaller;
 import org.jfrog.wharf.ivy.marshall.MrmMarshallerImpl;
@@ -36,6 +37,7 @@ public class CacheMetadataHandler implements IvySettingsAware {
 
     public CacheMetadataHandler(File baseDir) {
         this.baseDir = baseDir;
+        setLockStrategy(new ArtifactLockStrategy());
     }
 
     public void saveModuleRevisionMetadata(ModuleRevisionId mrid, ModuleRevisionMetadata mrm) {

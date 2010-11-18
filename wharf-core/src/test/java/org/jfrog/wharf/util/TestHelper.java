@@ -92,7 +92,7 @@ public class TestHelper {
      */
     public static void assertModuleRevisionIds(String expectedMrids,
             Collection/* <ModuleRevisionId> */mrids) {
-        Collection expected = parseMrids(expectedMrids);
+        Collection<ModuleRevisionId> expected = parseMrids(expectedMrids);
         Assert.assertEquals(expected, mrids);
     }
 
@@ -103,9 +103,9 @@ public class TestHelper {
      * @param mrids the text representation of the {@link ModuleRevisionId}
      * @return a collection of {@link ModuleRevisionId}
      */
-    public static Collection parseMrids(String mrids) {
+    public static Collection<ModuleRevisionId> parseMrids(String mrids) {
         String[] m = mrids.split(",?\\s+");
-        Collection c = new LinkedHashSet();
+        Collection<ModuleRevisionId> c = new LinkedHashSet<ModuleRevisionId>();
         for (int i = 0; i < m.length; i++) {
             c.add(ModuleRevisionId.parse(m[i]));
         }
@@ -120,7 +120,7 @@ public class TestHelper {
      * @return an array of {@link ModuleRevisionId}
      */
     public static ModuleRevisionId[] parseMridsToArray(String mrids) {
-        Collection parsedMrids = parseMrids(mrids);
+        Collection<ModuleRevisionId> parsedMrids = parseMrids(mrids);
         return (ModuleRevisionId[]) parsedMrids.toArray(new ModuleRevisionId[parsedMrids.size()]);
     }
 
@@ -170,9 +170,9 @@ public class TestHelper {
                     .newBasicInstance(ModuleRevisionId.parse(m.group(1)), new Date());
             String mrids = m.group(2);
             if (mrids != null) {
-                Collection depMrids = parseMrids(mrids);
-                for (Iterator iter = depMrids.iterator(); iter.hasNext();) {
-                    ModuleRevisionId dep = (ModuleRevisionId) iter.next();
+                Collection<ModuleRevisionId> depMrids = parseMrids(mrids);
+                for (Iterator<ModuleRevisionId> iter = depMrids.iterator(); iter.hasNext();) {
+                    ModuleRevisionId dep = iter.next();
                     md.addDependency(new DefaultDependencyDescriptor(dep, false));
                 }
             }
@@ -187,11 +187,11 @@ public class TestHelper {
      * @param microIvy the text representation of the collection of module descriptors
      * @return the collection of module descriptors parsed
      */
-    public static Collection/*<ModuleDescriptor>*/ parseMicroIvyDescriptors(String microIvy) {
+    public static Collection<ModuleDescriptor> parseMicroIvyDescriptors(String microIvy) {
         String[] mds = microIvy.split("\\s*;;\\s*");
-        Collection r = new ArrayList();
-        for (int i = 0; i < mds.length; i++) {
-            r.add(parseMicroIvyDescriptor(mds[i]));
+        Collection<ModuleDescriptor> r = new ArrayList<ModuleDescriptor>();
+        for (String md : mds) {
+            r.add(parseMicroIvyDescriptor(md));
         }
         return r;
     }
@@ -204,12 +204,12 @@ public class TestHelper {
      * @throws IOException if an IO problem occurs while filling the repository
      */
     public static void fillRepository(
-            DependencyResolver resolver, Collection/*<ModuleDescriptor>*/ mds) throws IOException {
+            DependencyResolver resolver, Collection<ModuleDescriptor>/*<ModuleDescriptor>*/ mds) throws IOException {
         File tmp = File.createTempFile("ivy", "tmp");
         try {
-            for (Iterator iter = mds.iterator(); iter.hasNext();) {
+            for (Iterator<ModuleDescriptor> iter = mds.iterator(); iter.hasNext();) {
                 boolean overwrite = false;
-                ModuleDescriptor md = (ModuleDescriptor) iter.next();
+                ModuleDescriptor md = iter.next();
                 resolver.beginPublishTransaction(md.getModuleRevisionId(), overwrite);
                 boolean published = false;
                 try {
@@ -218,8 +218,8 @@ public class TestHelper {
                     tmp.delete();
                     tmp.createNewFile();
                     Artifact[] artifacts = md.getAllArtifacts();
-                    for (int i = 0; i < artifacts.length; i++) {
-                        resolver.publish(artifacts[i], tmp, overwrite);
+                    for (Artifact artifact : artifacts) {
+                        resolver.publish(artifact, tmp, overwrite);
                     }
                     resolver.commitPublishTransaction();
                     published = true;

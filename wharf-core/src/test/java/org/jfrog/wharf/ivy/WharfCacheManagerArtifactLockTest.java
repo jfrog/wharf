@@ -77,6 +77,7 @@ public class WharfCacheManagerArtifactLockTest {
                 settings2, createSlowResolver(settings2, 20), "org6#mod6.4;3", 20);
         ResolveThread t3 = asyncResolve(
                 settings3, createSlowResolver(settings3, 5), "org6#mod6.4;3", 50);
+        //TODO: [by tc] add another thread that gets another artifact from cache, no locking.
         t1.join(100000);
         t2.join(20000);
         t3.join(20000);
@@ -124,8 +125,7 @@ public class WharfCacheManagerArtifactLockTest {
     }
 
 
-    private ResolveThread asyncResolve(
-            IvySettings settings, FileSystemResolver resolver, String module, int loop) {
+    private ResolveThread asyncResolve(IvySettings settings, FileSystemResolver resolver, String module, int loop) {
         ResolveThread thread = new ResolveThread(settings, resolver, module, loop);
         thread.start();
         return thread;
@@ -137,13 +137,10 @@ public class WharfCacheManagerArtifactLockTest {
         assertEquals(module, rmr.getId().toString());
     }
 
-    private ResolvedModuleRevision resolveModule(
-            IvySettings settings, FileSystemResolver resolver, String module)
+    private ResolvedModuleRevision resolveModule(IvySettings settings, FileSystemResolver resolver, String module)
             throws ParseException {
-        return resolver.getDependency(
-                new DefaultDependencyDescriptor(ModuleRevisionId.parse(module), false),
-                new ResolveData(
-                        new ResolveEngine(settings, new EventManager(), new SortEngine(settings)),
+        return resolver.getDependency(new DefaultDependencyDescriptor(ModuleRevisionId.parse(module), false),
+                new ResolveData(new ResolveEngine(settings, new EventManager(), new SortEngine(settings)),
                         new ResolveOptions()));
     }
 

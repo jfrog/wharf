@@ -35,10 +35,15 @@ import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.repository.ResourceHelper;
 import org.apache.ivy.plugins.resolver.AbstractResolver;
+import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
+import org.apache.ivy.plugins.resolver.URLResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
+import org.apache.ivy.util.url.URLHandler;
+import org.apache.ivy.util.url.URLHandlerRegistry;
+import org.jfrog.wharf.ivy.ResolverContainer;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolver;
@@ -48,7 +53,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -107,7 +111,6 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     public CacheMetadataHandler getMetadataHandler() {
         if (metadataHandler == null) {
-            //TODO: [by tc] use the typedef
             metadataHandler = new CacheMetadataHandler(getBasedir());
         }
         return metadataHandler;
@@ -129,11 +132,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
         int resolverId = wharfResolver.hashCode();
         Artifact artifact = DefaultArtifact.newIvyArtifact(mrid, null);
-        Map<String, String> attributes = new HashMap<String, String>(artifact.getAttributes());
-        attributes.put("resolverId", String.valueOf(resolverId));
-        artifact = new DefaultArtifact(artifact.getModuleRevisionId(),
-                artifact.getPublicationDate(), artifact.getName(), artifact.getType(), artifact.getExt(),
-                artifact.getUrl(), attributes);
+        artifact = ArtifactMetadata.fillResolverId(artifact, resolverId);
         String file = IvyPatternHelper.substitute(DEFAULT_IVY_PATTERN, artifact);
         return new File(getRepositoryCacheRoot(), file);
     }
@@ -294,6 +293,11 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
      * useOrigin = true
      */
     public File getArchiveFileInCache(Artifact artifact, DependencyResolver resolver) {
+        int resolverId = ArtifactMetadata.extractResolverId(artifact);
+        if (resolverId == 0) {
+            WharfResolver wharfResolver = getResolverHandler().getResolver(resolver);
+            artifact = ArtifactMetadata.fillResolverId(artifact, wharfResolver.getId());
+        }
         ArtifactOrigin origin = getSavedArtifactOrigin(artifact);
         return getArchiveFileInCache(artifact, origin);
     }
@@ -330,10 +334,11 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     public String getArchivePathInCache(Artifact artifact, ArtifactOrigin origin) {
         ArtifactMetadata artifactMetadata = findArtifactMetadata(artifact, origin);
-        if (artifactMetadata == null) {
-            return "";
+        if (artifactMetadata != null) {
+            return artifactMetadata.location;
         }
-        artifact.getExtraAttributes().put("resolverId", artifactMetadata.resolverId);
+        int resolverId = ArtifactMetadata.extractResolverId(artifact, origin);
+        artifact = ArtifactMetadata.fillResolverId(artifact, resolverId);
         if (isOriginalMetadataArtifact(artifact)) {
             return IvyPatternHelper.substitute(DEFAULT_IVY_PATTERN + ".original", artifact, origin);
         } else {
@@ -374,20 +379,14 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
-    public void saveArtifactOrigin(Artifact artifact, ArtifactOrigin origin, DependencyResolver dependencyResolver) {
-        WharfResolver resolver;
-        if (dependencyResolver == null) {
-            resolver = getResolverHandler().getLocalResolver();
-        } else {
-            resolver = getResolverHandler().getResolver(dependencyResolver);
-        }
+    public void saveArtifactOrigin(Artifact artifact, ArtifactOrigin origin) {
         // should always be called with a lock on module metadata artifact
         ModuleRevisionId mrid = artifact.getModuleRevisionId();
         ModuleRevisionMetadata mrm = getMetadataHandler().getModuleRevisionMetadata(mrid);
         if (mrm == null) {
             mrm = new ModuleRevisionMetadata();
         }
-        ArtifactMetadata artMd = new ArtifactMetadata(artifact, origin, resolver.getId());
+        ArtifactMetadata artMd = new ArtifactMetadata(artifact, origin);
         mrm.artifactMetadata.add(artMd);
         getMetadataHandler().saveModuleRevisionMetadata(mrid, mrm);
     }
@@ -420,11 +419,17 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             if (mrm == null) {
                 return ArtifactOrigin.unkwnown(artifact);
             }
-            String artId = ArtifactMetadata.getArtId(artifact);
-            for (ArtifactMetadata artMd : mrm.artifactMetadata) {
-                if (artId.equals(artMd.id) && getResolverHandler().isActiveResolver(artMd.resolverId)) {
-                    return new ArtifactOrigin(artifact, artMd.local, artMd.location);
+            int resolverId = ArtifactMetadata.extractResolverId(artifact);
+            if (resolverId == 0) {
+                String artId = ArtifactMetadata.getArtId(artifact);
+                for (ArtifactMetadata artMd : mrm.artifactMetadata) {
+                    if (artId.equals(artMd.id) && getResolverHandler().isActiveResolver(artMd.resolverId)) {
+                        return new ArtifactOrigin(artifact, artMd.local, artMd.location);
+                    }
                 }
+            } else {
+                ArtifactMetadata artMd = getMetadataHandler().getArtifactMetadata(artifact, resolverId);
+                return new ArtifactOrigin(artifact, artMd.local, artMd.location);
             }
             // origin has not been specified or or no active resolver. return null
             return ArtifactOrigin.unkwnown(artifact);
@@ -496,22 +501,17 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                             getResolverHandler().isActiveResolver(artMd.artResolverId)) {
                         artResolver = settings.getResolver(getResolverHandler().getResolver(artMd.artResolverId).name);
                     }
-
                     Message.debug("\tfound ivy file in cache for " + mrid + " (resolved by "
                             + resolver.getName() + "): " + ivyFile);
-                    if (expectedResolver == null
-                            || expectedResolver.equals(resolver.getName())) {
-                        MetadataArtifactDownloadReport madr
-                                = new MetadataArtifactDownloadReport(
+                    if (expectedResolver == null || expectedResolver.getName().equals(resolver.getName())) {
+                        MetadataArtifactDownloadReport madr = new MetadataArtifactDownloadReport(
                                 depMD.getMetadataArtifact());
                         madr.setDownloadStatus(DownloadStatus.NO);
                         madr.setSearched(false);
                         madr.setLocalFile(ivyFile);
                         madr.setSize(ivyFile.length());
-                        madr.setArtifactOrigin(
-                                getSavedArtifactOrigin(depMD.getMetadataArtifact()));
-                        return new ResolvedModuleRevision(
-                                resolver, artResolver, depMD, madr);
+                        madr.setArtifactOrigin(getSavedArtifactOrigin(depMD.getMetadataArtifact()));
+                        return new ResolvedModuleRevision(resolver, artResolver, depMD, madr);
                     } else {
                         Message.debug(
                                 "found module in cache but with a different resolver: "
@@ -653,24 +653,32 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             if (listener != null) {
                 listener.needArtifact(this, artifact);
             }
-            DependencyResolver callingResolver = null;
-            try {
-                Field field = resourceResolver.getClass().getDeclaredField("this$0");
-                field.setAccessible(true);
-                Object callingField = field.get(resourceResolver);
-                if (callingField instanceof DependencyResolver) {
-                    callingResolver = (DependencyResolver) callingField;
-                } else if (callingField instanceof WharfCacheManager) {
-                    WharfCacheManager manager = (WharfCacheManager) callingField;
-                    callingField = manager.getResolverHandler().getLocalResolver();
+            WharfResolver resolver;
+            int resolverId = ArtifactMetadata.extractResolverId(artifact);
+            if (resolverId == 0) {
+                DependencyResolver callingResolver;
+                try {
+                    Field field = resourceResolver.getClass().getDeclaredField("this$0");
+                    field.setAccessible(true);
+                    Object callingField = field.get(resourceResolver);
+                    if (callingField instanceof ChainResolver) {
+                        throw new IllegalStateException("Cannot be called from a chain resolver: " + callingField);
+                    }
+                    if (callingField instanceof DependencyResolver) {
+                        callingResolver = (DependencyResolver) callingField;
+                        resolver = getResolverHandler().getResolver(callingResolver);
+                        artifact = ArtifactMetadata.fillResolverId(artifact, resolver.getId());
+                    } else {
+                        throw new IllegalStateException(
+                                "Calling download on wharf resolver not from a DependencyResolver: " + callingField);
+                    }
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (NoSuchFieldException e) {
+                    e.printStackTrace();
                 }
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (NoSuchFieldException e) {
-                e.printStackTrace();
-            }
-            if (callingResolver == null) {
-                callingResolver = settings.getDefaultResolver();
+            } else {
+                resolver = getResolverHandler().getResolver(resolverId);
             }
             ArtifactOrigin origin = getSavedArtifactOrigin(artifact);
             // if we can use origin file, we just ask ivy for the file in cache, and it will
@@ -688,12 +696,10 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 try {
                     ResolvedResource artifactRef = resourceResolver.resolve(artifact);
                     if (artifactRef != null) {
-                        origin = new ArtifactOrigin(
-                                artifact,
-                                artifactRef.getResource().isLocal(),
+                        origin = new ArtifactOrigin(artifact, artifactRef.getResource().isLocal(),
                                 artifactRef.getResource().getName());
                         if (useOrigin && artifactRef.getResource().isLocal()) {
-                            saveArtifactOrigin(artifact, origin, callingResolver);
+                            saveArtifactOrigin(artifact, origin);
                             archiveFile = getArchiveFileInCache(artifact, origin);
                             adr.setDownloadStatus(DownloadStatus.NO);
                             adr.setSize(archiveFile.length());
@@ -711,10 +717,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                                 listener.startArtifactDownload(this, artifactRef, artifact, origin);
                             }
 
-                            resourceDownloader.download(
-                                    artifact, artifactRef.getResource(), archiveFile);
+                            resourceDownloader.download(artifact, artifactRef.getResource(), archiveFile);
                             adr.setSize(archiveFile.length());
-                            saveArtifactOrigin(artifact, origin, callingResolver);
+                            saveArtifactOrigin(artifact, origin);
                             adr.setDownloadTimeMillis(System.currentTimeMillis() - start);
                             adr.setDownloadStatus(DownloadStatus.SUCCESSFUL);
                             adr.setArtifactOrigin(origin);
@@ -740,10 +745,8 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
-    public void originalToCachedModuleDescriptor(
-            DependencyResolver resolver, ResolvedResource orginalMetadataRef,
-            Artifact requestedMetadataArtifact,
-            ResolvedModuleRevision rmr, ModuleDescriptorWriter writer) {
+    public void originalToCachedModuleDescriptor(DependencyResolver resolver, ResolvedResource orginalMetadataRef,
+            Artifact requestedMetadataArtifact, ResolvedModuleRevision rmr, ModuleDescriptorWriter writer) {
         ModuleDescriptor md = rmr.getDescriptor();
         Artifact originalMetadataArtifact = getOriginalMetadataArtifact(requestedMetadataArtifact);
         File mdFileInCache = getIvyFileInCache(md.getResolvedModuleRevisionId(), resolver);
@@ -775,10 +778,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
-    public ResolvedModuleRevision cacheModuleDescriptor(
-            DependencyResolver resolver, final ResolvedResource mdRef, DependencyDescriptor dd,
-            Artifact moduleArtifact, ResourceDownloader downloader, CacheMetadataOptions options)
-            throws ParseException {
+    public ResolvedModuleRevision cacheModuleDescriptor(DependencyResolver resolver, final ResolvedResource mdRef,
+            DependencyDescriptor dd, Artifact moduleArtifact, ResourceDownloader downloader,
+            CacheMetadataOptions options) throws ParseException {
         Date cachedPublicationDate = null;
         ArtifactDownloadReport report;
         ModuleRevisionId mrid = moduleArtifact.getModuleRevisionId();
@@ -799,7 +801,15 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                             moduleArtifact, options.getNamespace().getToSystemTransformer());
 
                     // TODO: An artifact was check with head request (result in mdRef)
+                    if (resolver instanceof URLResolver) {
+                        URLHandler urlHandler = URLHandlerRegistry.getHttp();
+                        urlHandler.setRequestMethod(URLHandler.REQUEST_METHOD_HEAD);
+                        URLHandler.URLInfo info = urlHandler.getURLInfo(moduleArtifact.getUrl(), 5000);
+                        long lastModifiedFromHeadRequest = info.getLastModified();
+                    }
+
                     // If there is a cached file for this dependency resolver => delete the file and metadata
+                    WharfResolver wharfResolver = getResolverHandler().getResolver(resolver);
                     // TODO: BECAREFUL THE CODE HERE IS WRONG need to use dependecyResolver id
                     ArtifactOrigin origin = getSavedArtifactOrigin(transformedArtifact);
                     File artFile = getArchiveFileInCache(transformedArtifact, origin);
@@ -852,14 +862,15 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             }
 
             Artifact originalMetadataArtifact = getOriginalMetadataArtifact(moduleArtifact);
+            WharfResolver wharfResolver = getResolverHandler().getResolver(resolver);
+            originalMetadataArtifact = ArtifactMetadata.fillResolverId(originalMetadataArtifact, wharfResolver.getId());
             // now download module descriptor and parse it
-            report = download(
-                    originalMetadataArtifact,
-                    new ArtifactResourceResolver() {
-                        public ResolvedResource resolve(Artifact artifact) {
-                            return mdRef;
-                        }
-                    }, backupDownloader,
+            ResolverContainer.setResolver(resolver);
+            report = download(originalMetadataArtifact, new ArtifactResourceResolver() {
+                public ResolvedResource resolve(Artifact artifact) {
+                    return mdRef;
+                }
+            }, backupDownloader,
                     new CacheDownloadOptions().setListener(options.getListener()).setForce(true));
             Message.verbose("\t" + report);
 
@@ -939,7 +950,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
                 Artifact transformedMetadataArtifact = NameSpaceHelper.transform(
                         md.getMetadataArtifact(), options.getNamespace().getToSystemTransformer());
-                saveArtifactOrigin(transformedMetadataArtifact, report.getArtifactOrigin(), resolver);
+                saveArtifactOrigin(transformedMetadataArtifact, report.getArtifactOrigin());
 
                 return new ResolvedModuleRevision(resolver, resolver, md, madr);
             } catch (IOException ex) {
@@ -954,8 +965,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     }
 
     public Artifact getOriginalMetadataArtifact(Artifact moduleArtifact) {
-        return DefaultArtifact.cloneWithAnotherType(
-                moduleArtifact, moduleArtifact.getType() + ".original");
+        return DefaultArtifact.cloneWithAnotherType(moduleArtifact, moduleArtifact.getType() + ".original");
     }
 
     private boolean isOriginalMetadataArtifact(Artifact artifact) {

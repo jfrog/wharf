@@ -6,6 +6,7 @@ import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.plugins.resolver.URLResolver;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,7 +48,10 @@ public class WharfResolver {
             this.url = repository.getName();
         } else if (resolver instanceof FileSystemResolver) {
             FileSystemResolver fileSystemResolver = (FileSystemResolver) resolver;
-            this.url = fileSystemResolver.getArtifactPatterns().get(0).toString();
+            List patterns = fileSystemResolver.getArtifactPatterns();
+            if (!patterns.isEmpty()) {
+                this.url = patterns.get(0).toString();
+            }
         }
     }
 
