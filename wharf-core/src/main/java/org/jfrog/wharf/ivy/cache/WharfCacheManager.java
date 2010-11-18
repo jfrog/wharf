@@ -441,8 +441,11 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             Message.verbose("don't use cache for " + mrid + ": changing=true");
             return null;
         }
-        //TODO: [by tc] the expected resolver can be null, find a live resolver from the MRID
         DependencyResolver resolver = settings.getResolver(expectedResolver);
+        if (resolver == null) {
+            String resolverName = settings.getResolverName(mrid);
+            resolver = settings.getResolver(resolverName);
+        }
         return doFindModuleInCache(mrid, options, resolver);
     }
 
@@ -477,7 +480,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                     return null;
                 }
             }
-            //TODO: [by tc] if expected resolver is null, find the best ivy file cache from live resolvers.
+            if (expectedResolver == null) {
+                expectedResolver = settings.getResolver(mrid);
+            }
             WharfResolver wharfResolver = getResolverHandler().getResolver(expectedResolver);
             int expectedResolverId = wharfResolver.getId();
             File ivyFile = getIvyFileInCache(mrid, expectedResolverId);
