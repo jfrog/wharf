@@ -1,8 +1,9 @@
-package org.jfrog.wharf.ivy.marshall;
+package org.jfrog.wharf.ivy.marshall.resolver;
 
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
+import org.jfrog.wharf.ivy.marshall.JacksonFactory;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;
@@ -17,20 +18,16 @@ import java.util.Set;
 /**
  * @author Tomer Cohen
  */
-public class WharfResolverMarshaller {
+public class WharfResolverMarshallerImpl implements WharfResolverMarshaller {
 
-    private File resolversFile;
-    private Set<WharfResolverMetadata> wharfResolverMetadatas = new HashSet<WharfResolverMetadata>();
-    private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.json";
-
-    public WharfResolverMarshaller(File baseDir) {
-        this.resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
+    public Set<WharfResolverMetadata> getWharfMetadatas(File baseDir) {
+        File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         if (resolversFile.exists()) {
             InputStream stream = null;
             try {
                 stream = new FileInputStream(resolversFile);
                 JsonParser jsonParser = JacksonFactory.createJsonParser(stream);
-                wharfResolverMetadatas = jsonParser.readValueAs(Set.class);
+                return jsonParser.readValueAs(Set.class);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } finally {
@@ -42,10 +39,13 @@ public class WharfResolverMarshaller {
                     }
                 }
             }
+        } else {
+            return new HashSet<WharfResolverMetadata>();
         }
     }
 
-    public void save() {
+    public void save(File baseDir, Set<WharfResolverMetadata> wharfResolverMetadatas) {
+        File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         OutputStream stream = null;
         try {
             File dir = resolversFile.getParentFile();
@@ -66,9 +66,5 @@ public class WharfResolverMarshaller {
                 }
             }
         }
-    }
-
-    public Set<WharfResolverMetadata> getWharfResolverMetadatas() {
-        return wharfResolverMetadatas;
     }
 }

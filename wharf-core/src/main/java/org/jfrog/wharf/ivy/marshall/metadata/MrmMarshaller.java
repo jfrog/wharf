@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy.marshall;
+package org.jfrog.wharf.ivy.marshall.metadata;
 
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 

@@ -1,9 +1,11 @@
-package org.jfrog.wharf.ivy.marshall;
+package org.jfrog.wharf.ivy.marshall.metadata.Jackson;
 
 
 import org.apache.ivy.util.Message;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
+import org.jfrog.wharf.ivy.marshall.JacksonFactory;
+import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;

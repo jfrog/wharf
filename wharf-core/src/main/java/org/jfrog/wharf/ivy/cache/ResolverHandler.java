@@ -4,13 +4,15 @@ import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
-import org.jfrog.wharf.ivy.marshall.WharfResolverMarshaller;
+import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
+import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshallerImpl;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,19 +30,16 @@ public class ResolverHandler implements IvySettingsAware {
     private final Map<Integer, WharfResolverMetadata> resolvers = new HashMap<Integer, WharfResolverMetadata>();
     private final Map<Integer, WharfResolverMetadata> resolverFromDependencyResolverHash =
             new HashMap<Integer, WharfResolverMetadata>();
-    private WharfResolverMarshaller wharfResolverMarshaller;
+    private WharfResolverMarshaller wharfResolverMarshaller = new WharfResolverMarshallerImpl();
     private IvySettings settings;
     private static final WharfResolverMetadata LOCAL_WHARF_METADATA = new WharfResolverMetadata("local-wharf", "wharf");
 
     public ResolverHandler(File baseDir) {
         this.baseDir = baseDir;
         // populate the set of resolvers from the baseDir/resolvers.json file
-        if (wharfResolverMarshaller == null) {
-            wharfResolverMarshaller = new WharfResolverMarshaller(baseDir);
-            Set<WharfResolverMetadata> resolverMetadataIds = wharfResolverMarshaller.getWharfResolverMetadatas();
-            for (WharfResolverMetadata wharfResolverMetadata : resolverMetadataIds) {
-                resolvers.put(wharfResolverMetadata.hashCode(), wharfResolverMetadata);
-            }
+        Set<WharfResolverMetadata> resolverMetadataIds = wharfResolverMarshaller.getWharfMetadatas(baseDir);
+        for (WharfResolverMetadata wharfResolverMetadata : resolverMetadataIds) {
+            resolvers.put(wharfResolverMetadata.hashCode(), wharfResolverMetadata);
         }
     }
 
@@ -94,7 +93,7 @@ public class ResolverHandler implements IvySettingsAware {
     }
 
     public void saveCacheResolverFile() {
-        wharfResolverMarshaller.save();
+        wharfResolverMarshaller.save(baseDir, new HashSet<WharfResolverMetadata>(getAllResolvers()));
     }
 
     public void setSettings(IvySettings settings) {
