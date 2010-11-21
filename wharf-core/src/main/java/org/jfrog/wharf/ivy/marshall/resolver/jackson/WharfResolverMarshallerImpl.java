@@ -1,9 +1,10 @@
-package org.jfrog.wharf.ivy.marshall.resolver;
+package org.jfrog.wharf.ivy.marshall.resolver.jackson;
 
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.jfrog.wharf.ivy.marshall.JacksonFactory;
+import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;
@@ -20,6 +21,7 @@ import java.util.Set;
  */
 public class WharfResolverMarshallerImpl implements WharfResolverMarshaller {
 
+    @Override
     public Set<WharfResolverMetadata> getWharfMetadatas(File baseDir) {
         File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         if (resolversFile.exists()) {
@@ -44,6 +46,7 @@ public class WharfResolverMarshallerImpl implements WharfResolverMarshaller {
         }
     }
 
+    @Override
     public void save(File baseDir, Set<WharfResolverMetadata> wharfResolverMetadatas) {
         File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         OutputStream stream = null;

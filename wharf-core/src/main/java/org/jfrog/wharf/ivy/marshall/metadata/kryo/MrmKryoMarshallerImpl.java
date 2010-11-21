@@ -1,11 +1,11 @@
-package org.jfrog.wharf.ivy.marshall.metadata.Jackson;
+package org.jfrog.wharf.ivy.marshall.metadata.kryo;
 
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.ObjectBuffer;
 import org.apache.ivy.util.Message;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParser;
-import org.jfrog.wharf.ivy.marshall.JacksonFactory;
 import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
@@ -14,11 +14,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashSet;
 
 /**
  * @author Tomer Cohen
  */
-public class MrmMarshallerImpl implements MrmMarshaller {
+public class MrmKryoMarshallerImpl implements MrmMarshaller {
 
     @Override
     public ModuleRevisionMetadata getModuleRevisionMetadata(File file) {
@@ -26,9 +27,13 @@ public class MrmMarshallerImpl implements MrmMarshaller {
             InputStream inputStream = null;
             try {
                 inputStream = new FileInputStream(file);
-                JsonParser jsonParser = JacksonFactory.createJsonParser(inputStream);
-                return jsonParser.readValueAs(ModuleRevisionMetadata.class);
-            } catch (IOException e) {
+                Kryo kryo = new Kryo();
+                kryo.register(ModuleRevisionMetadata.class);
+                kryo.register(HashSet.class);
+                kryo.register(ArtifactMetadata.class);
+                ObjectBuffer buffer = new ObjectBuffer(kryo);
+                return buffer.readObject(inputStream, ModuleRevisionMetadata.class);
+            } catch (IOException ioe) {
                 Message.error("Error loading module revision metadata file: " + file.getAbsolutePath());
                 // Delete the file (send exception if delete impossible) and returns null
                 file.delete();
@@ -54,10 +59,14 @@ public class MrmMarshallerImpl implements MrmMarshaller {
                 dir.mkdirs();
             }
             stream = new FileOutputStream(file);
-            JsonGenerator generator = JacksonFactory.createJsonGenerator(stream);
-            generator.writeObject(mrm);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            Kryo kryo = new Kryo();
+            kryo.register(ModuleRevisionMetadata.class);
+            kryo.register(ArtifactMetadata.class);
+            kryo.register(HashSet.class);
+            ObjectBuffer buffer = new ObjectBuffer(kryo);
+            buffer.writeObject(stream, mrm);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
         } finally {
             if (stream != null) {
                 try {
