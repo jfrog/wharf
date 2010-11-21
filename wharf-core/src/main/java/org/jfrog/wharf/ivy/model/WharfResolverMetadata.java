@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * @author Tomer Cohen
  */
-public class WharfResolver {
+public class WharfResolverMetadata {
 
     public String name;
 
@@ -24,19 +24,21 @@ public class WharfResolver {
 
     public Map<String, String> params;
 
+    public String[] checksumAlgorithms;
+
     public String authentication;
 
     public String proxy;
 
-    public WharfResolver() {
+    public WharfResolverMetadata() {
     }
 
-    public WharfResolver(String name, String type) {
+    public WharfResolverMetadata(String name, String type) {
         this.name = name;
         this.type = type;
     }
 
-    public WharfResolver(DependencyResolver resolver) {
+    public WharfResolverMetadata(DependencyResolver resolver) {
         this.name = resolver.getName();
         if (resolver instanceof AbstractResolver) {
             this.type = ((AbstractResolver) resolver).getTypeName();
@@ -68,7 +70,7 @@ public class WharfResolver {
             return false;
         }
 
-        WharfResolver that = (WharfResolver) o;
+        WharfResolverMetadata that = (WharfResolverMetadata) o;
 
         if (!name.equals(that.name)) {
             return false;

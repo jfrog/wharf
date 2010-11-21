@@ -3,7 +3,7 @@ package org.jfrog.wharf.ivy.marshall;
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
-import org.jfrog.wharf.ivy.model.WharfResolver;
+import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -20,7 +20,7 @@ import java.util.Set;
 public class WharfResolverMarshaller {
 
     private File resolversFile;
-    private Set<WharfResolver> wharfResolvers = new HashSet<WharfResolver>();
+    private Set<WharfResolverMetadata> wharfResolverMetadatas = new HashSet<WharfResolverMetadata>();
     private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.json";
 
     public WharfResolverMarshaller(File baseDir) {
@@ -30,7 +30,7 @@ public class WharfResolverMarshaller {
             try {
                 stream = new FileInputStream(resolversFile);
                 JsonParser jsonParser = JacksonFactory.createJsonParser(stream);
-                wharfResolvers = jsonParser.readValueAs(Set.class);
+                wharfResolverMetadatas = jsonParser.readValueAs(Set.class);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } finally {
@@ -54,7 +54,7 @@ public class WharfResolverMarshaller {
             }
             stream = new FileOutputStream(resolversFile);
             JsonGenerator generator = JacksonFactory.createJsonGenerator(stream);
-            generator.writeObject(wharfResolvers);
+            generator.writeObject(wharfResolverMetadatas);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -68,7 +68,7 @@ public class WharfResolverMarshaller {
         }
     }
 
-    public Set<WharfResolver> getWharfResolvers() {
-        return wharfResolvers;
+    public Set<WharfResolverMetadata> getWharfResolverMetadatas() {
+        return wharfResolverMetadatas;
     }
 }

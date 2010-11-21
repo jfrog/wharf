@@ -38,7 +38,7 @@ import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.FileUtil;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
-import org.jfrog.wharf.ivy.model.WharfResolver;
+import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 import org.jfrog.wharf.util.CacheCleaner;
 import org.junit.After;
 import org.junit.Before;
@@ -287,8 +287,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals(pubdate, rmr.getPublicationDate());
 
         Artifact[] artifacts = rmr.getDescriptor().getArtifacts("default");
-        WharfResolver wharfResolver = cacheManager.getResolverHandler().getResolver(resolver);
-        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolver.getId());
+        WharfResolverMetadata wharfResolverMetadata = cacheManager.getResolverHandler().getResolver(resolver);
+        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolverMetadata.getId());
         File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
         resolver.download(artifacts, getDownloadOptions());
         assertTrue(archiveFileInCache.exists());
@@ -315,7 +315,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals(pubdate, rmr.getPublicationDate());
 
         artifacts = rmr.getDescriptor().getArtifacts("default");
-        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolver.getId());
+        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolverMetadata.getId());
         archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
 
         assertFalse(archiveFileInCache.exists());
@@ -363,8 +363,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         Artifact[] artifacts = rmr.getDescriptor().getArtifacts("default");
         resolver.download(artifacts, getDownloadOptions());
-        WharfResolver wharfResolver = cacheManager.getResolverHandler().getResolver(resolver);
-        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolver.getId());
+        WharfResolverMetadata wharfResolverMetadata = cacheManager.getResolverHandler().getResolver(resolver);
+        artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolverMetadata.getId());
         File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
         assertTrue(archiveFileInCache.exists());
         BufferedReader r = new BufferedReader(new FileReader(archiveFileInCache));

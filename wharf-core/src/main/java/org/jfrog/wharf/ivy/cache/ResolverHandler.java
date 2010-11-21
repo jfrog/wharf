@@ -5,7 +5,7 @@ import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.marshall.WharfResolverMarshaller;
-import org.jfrog.wharf.ivy.model.WharfResolver;
+import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -25,21 +25,21 @@ public class ResolverHandler implements IvySettingsAware {
      */
     private final File baseDir;
 
-    private final Map<Integer, WharfResolver> resolvers = new HashMap<Integer, WharfResolver>();
-    private final Map<Integer, WharfResolver> resolverFromDependencyResolverHash =
-            new HashMap<Integer, WharfResolver>();
+    private final Map<Integer, WharfResolverMetadata> resolvers = new HashMap<Integer, WharfResolverMetadata>();
+    private final Map<Integer, WharfResolverMetadata> resolverFromDependencyResolverHash =
+            new HashMap<Integer, WharfResolverMetadata>();
     private WharfResolverMarshaller wharfResolverMarshaller;
     private IvySettings settings;
-    private static final WharfResolver LOCAL_WHARF = new WharfResolver("local-wharf", "wharf");
+    private static final WharfResolverMetadata LOCAL_WHARF_METADATA = new WharfResolverMetadata("local-wharf", "wharf");
 
     public ResolverHandler(File baseDir) {
         this.baseDir = baseDir;
         // populate the set of resolvers from the baseDir/resolvers.json file
         if (wharfResolverMarshaller == null) {
             wharfResolverMarshaller = new WharfResolverMarshaller(baseDir);
-            Set<WharfResolver> resolverIds = wharfResolverMarshaller.getWharfResolvers();
-            for (WharfResolver wharfResolver : resolverIds) {
-                resolvers.put(wharfResolver.hashCode(), wharfResolver);
+            Set<WharfResolverMetadata> resolverMetadataIds = wharfResolverMarshaller.getWharfResolverMetadatas();
+            for (WharfResolverMetadata wharfResolverMetadata : resolverMetadataIds) {
+                resolvers.put(wharfResolverMetadata.hashCode(), wharfResolverMetadata);
             }
         }
     }
@@ -47,7 +47,7 @@ public class ResolverHandler implements IvySettingsAware {
     /**
      * @return Get a resolver ID according
      */
-    public WharfResolver getResolver(DependencyResolver resolver) {
+    public WharfResolverMetadata getResolver(DependencyResolver resolver) {
         // find in shortcut
         if (resolver == null) {
             throw new IllegalArgumentException("Cannot find null resolver");
@@ -57,23 +57,23 @@ public class ResolverHandler implements IvySettingsAware {
             return resolverFromDependencyResolverHash.get(hash);
         }
         // Need to find if in my cache then save to json file and shortcut
-        WharfResolver wharfResolver = new WharfResolver(resolver);
-        resolverFromDependencyResolverHash.put(hash, wharfResolver);
-        resolvers.put(wharfResolver.hashCode(), wharfResolver);
+        WharfResolverMetadata wharfResolverMetadata = new WharfResolverMetadata(resolver);
+        resolverFromDependencyResolverHash.put(hash, wharfResolverMetadata);
+        resolvers.put(wharfResolverMetadata.hashCode(), wharfResolverMetadata);
         saveCacheResolverFile();
-        return wharfResolver;
+        return wharfResolverMetadata;
     }
 
-    public WharfResolver getLocalResolver() {
-        if (!resolvers.containsKey(LOCAL_WHARF.hashCode())) {
+    public WharfResolverMetadata getLocalResolver() {
+        if (!resolvers.containsKey(LOCAL_WHARF_METADATA.hashCode())) {
             try {
-                LOCAL_WHARF.url = baseDir.toURI().toURL().toExternalForm();
+                LOCAL_WHARF_METADATA.url = baseDir.toURI().toURL().toExternalForm();
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
-            resolvers.put(LOCAL_WHARF.hashCode(), LOCAL_WHARF);
+            resolvers.put(LOCAL_WHARF_METADATA.hashCode(), LOCAL_WHARF_METADATA);
         }
-        return LOCAL_WHARF;
+        return LOCAL_WHARF_METADATA;
     }
 
     public void cleanResolvers() {
@@ -85,11 +85,11 @@ public class ResolverHandler implements IvySettingsAware {
     /**
      * @return set of all resolvers Ids ever used in this cache
      */
-    public Collection<WharfResolver> getAllResolvers() {
+    public Collection<WharfResolverMetadata> getAllResolvers() {
         return resolvers.values();
     }
 
-    public WharfResolver getResolver(int resolverId) {
+    public WharfResolverMetadata getResolver(int resolverId) {
         return resolvers.get(resolverId);
     }
 
@@ -102,16 +102,16 @@ public class ResolverHandler implements IvySettingsAware {
     }
 
     public boolean isActiveResolver(int resolverId) {
-        WharfResolver resolver = getResolver(resolverId);
-        if (resolver.equals(getLocalResolver())) {
+        WharfResolverMetadata resolverMetadata = getResolver(resolverId);
+        if (resolverMetadata.equals(getLocalResolver())) {
             return true;
         }
-        if (resolver == null) {
+        if (resolverMetadata == null) {
             Message.error("No resolver for " + resolverId + " This cannot happen, please check cache corruption");
             return false;
         }
-        if (settings.getResolverNames().contains(resolver.name)) {
-            int currentResolverId = new WharfResolver(settings.getResolver(resolver.name)).getId();
+        if (settings.getResolverNames().contains(resolverMetadata.name)) {
+            int currentResolverId = new WharfResolverMetadata(settings.getResolver(resolverMetadata.name)).getId();
             return currentResolverId == resolverId;
         }
         return false;
