@@ -432,8 +432,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
-    public ResolvedModuleRevision findModuleInCache(
-            DependencyDescriptor dd, ModuleRevisionId requestedRevisionId,
+    public ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ModuleRevisionId requestedRevisionId,
             CacheMetadataOptions options, String expectedResolver) {
         ModuleRevisionId mrid = requestedRevisionId;
         if (isCheckmodified(dd, requestedRevisionId, options)) {
@@ -1028,7 +1027,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     private static final class BackupResourceDownloader implements ResourceDownloader {
 
-        private ResourceDownloader delegate;
+        private final ResourceDownloader delegate;
         private File backup;
         private String originalPath;
 

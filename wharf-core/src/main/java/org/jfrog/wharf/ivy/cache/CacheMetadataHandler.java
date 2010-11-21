@@ -3,17 +3,20 @@ package org.jfrog.wharf.ivy.cache;
 
 import org.apache.ivy.core.IvyPatternHelper;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.lock.LockStrategy;
+import org.apache.ivy.plugins.lock.NoLockStrategy;
 import org.jfrog.wharf.ivy.marshall.MrmMarshaller;
 import org.jfrog.wharf.ivy.marshall.MrmMarshallerImpl;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
+import java.util.Date;
 
 /**
  * @author Tomer Cohen
@@ -24,7 +27,7 @@ public class CacheMetadataHandler implements IvySettingsAware {
             "[organisation]/[module](/[branch])/wharfdata-[revision].json";
 
     // todo: use Ivy's typedef
-    private MrmMarshaller mrmMarshaller = new MrmMarshallerImpl();
+    private final MrmMarshaller mrmMarshaller = new MrmMarshallerImpl();
 
     private File baseDir;
 
@@ -116,10 +119,11 @@ public class CacheMetadataHandler implements IvySettingsAware {
     }
 
     private Artifact getDefaultMetadataArtifact(ModuleRevisionId mrid) {
-        // TODO: If lock strategy is from the default ones (noLock or artifact) just return null
-        return null;
+        LockStrategy strategy = getLockStrategy();
+        if (strategy instanceof ArtifactLockStrategy || strategy instanceof NoLockStrategy) {
+            return null;
+        }
         // If special lock strategy create the following
-        //return new DefaultArtifact(mrid, new Date(), "wharf-metadata", "metadata", "ivy", true);
+        return new DefaultArtifact(mrid, new Date(), "wharf-metadata", "metadata", "ivy", true);
     }
-
 }
