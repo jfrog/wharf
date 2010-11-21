@@ -448,7 +448,11 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             Message.verbose("don't use cache for " + mrid + ": changing=true");
             return null;
         }
-        DependencyResolver resolver = settings.getResolver(expectedResolver);
+
+        DependencyResolver resolver = null;
+        if (expectedResolver != null) {
+            resolver = settings.getResolver(expectedResolver);
+        }
         if (resolver == null) {
             String resolverName = settings.getResolverName(mrid);
             resolver = settings.getResolver(resolverName);
