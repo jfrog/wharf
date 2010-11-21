@@ -810,8 +810,8 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                     Artifact transformedArtifact = NameSpaceHelper.transform(
                             moduleArtifact, options.getNamespace().getToSystemTransformer());
                     WharfResolver wharfResolver = getResolverHandler().getResolver(resolver);
+                    // put into the artifact the resolverId as an extra attribute.
                     transformedArtifact = ArtifactMetadata.fillResolverId(transformedArtifact, wharfResolver.getId());
-
                     // TODO: An artifact was check with head request (result in mdRef)
                     if (resolver instanceof URLResolver) {
                         URLHandler urlHandler = URLHandlerRegistry.getHttp();
@@ -819,9 +819,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                         URLHandler.URLInfo info = urlHandler.getURLInfo(moduleArtifact.getUrl(), 5000);
                         long lastModifiedFromHeadRequest = info.getLastModified();
                     }
-
                     // If there is a cached file for this dependency resolver => delete the file and metadata
-                    // TODO: BECAREFUL THE CODE HERE IS WRONG need to use dependecyResolver id
                     ArtifactOrigin origin = getSavedArtifactOrigin(transformedArtifact);
                     File artFile = getArchiveFileInCache(transformedArtifact, origin);
                     if (artFile.exists() && repoLastModified > artFile.lastModified()) {

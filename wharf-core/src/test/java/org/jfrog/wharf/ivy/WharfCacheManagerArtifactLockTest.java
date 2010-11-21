@@ -121,6 +121,7 @@ public class WharfCacheManagerArtifactLockTest {
                 "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
         resolver.addArtifactPattern(baseDir +
                 "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
+        settings.addResolver(resolver);
         return resolver;
     }
 
