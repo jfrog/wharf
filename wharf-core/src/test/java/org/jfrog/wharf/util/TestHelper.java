@@ -49,9 +49,8 @@ import java.util.regex.Pattern;
 
 public class TestHelper {
 
-    public static DefaultArtifact newArtifact(
-            String organisation, String module, String revision,
-            String artifact, String type, String ext) {
+    public static DefaultArtifact newArtifact(String organisation, String module, String revision, String artifact,
+            String type, String ext) {
         return new DefaultArtifact(ModuleRevisionId.newInstance(
                 organisation, module, revision), new Date(), artifact, type, ext);
     }

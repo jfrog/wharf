@@ -47,14 +47,16 @@ import static org.junit.Assert.assertNotNull;
 
 public class WharfCacheManagerArtifactLockTest {
 
+    private File cache = new File("build/test/cache");
+
     @Before
     public void setUp() throws Exception {
-        FileUtil.forceDelete(new File("build/test/cache"));
+        FileUtil.forceDelete(cache);
     }
 
     @After
     public void tearDown() throws Exception {
-        FileUtil.forceDelete(new File("build/test/cache"));
+        FileUtil.forceDelete(cache);
     }
 
     @Test
@@ -65,8 +67,11 @@ public class WharfCacheManagerArtifactLockTest {
         // multiple vms, but using separate settings we should only run into shared cache related
         // issues, and not multi thread related issues.
         IvySettings settings1 = new IvySettings();
+        settings1.setDefaultCache(cache);
         IvySettings settings2 = new IvySettings();
+        settings2.setDefaultCache(cache);
         IvySettings settings3 = new IvySettings();
+        settings3.setDefaultCache(cache);
 
         // run 3 concurrent resolves, one taking 100ms to download files, one 20ms and one 5ms
         // the first one do 10 resolves, the second one 20 and the third 50
@@ -91,7 +96,7 @@ public class WharfCacheManagerArtifactLockTest {
 
 
     private RepositoryCacheManager newCacheManager(IvySettings settings) {
-        WharfCacheManager cacheManager = new WharfCacheManager("cache", settings, new File("build/test/cache"));
+        WharfCacheManager cacheManager = new WharfCacheManager("cache", settings, cache);
         cacheManager.getMetadataHandler().setLockStrategy(new ArtifactLockStrategy());
         return cacheManager;
     }
