@@ -102,6 +102,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         return settings;
     }
 
+    @Override
     public void setSettings(IvySettings settings) {
         this.settings = settings;
         getMetadataHandler().setSettings(settings);
@@ -155,6 +156,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         this.defaultTTL = parseDuration(defaultTTL);
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -353,6 +355,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
      * @param md   the module descriptor resolved
      * @param name artifact resolver name
      */
+    @Override
     public void saveResolvers(ModuleDescriptor md, String metadataResolverName, String artifactResolverName) {
         ModuleRevisionId mrid = md.getResolvedModuleRevisionId();
         if (!getMetadataHandler().lockMetadataArtifact(mrid)) {
@@ -399,6 +402,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
      * @param artifact
      * @return
      */
+    @Override
     public ArtifactOrigin getSavedArtifactOrigin(Artifact artifact) {
         ModuleRevisionId mrid = artifact.getModuleRevisionId();
         if (!getMetadataHandler().lockMetadataArtifact(mrid)) {
@@ -432,6 +436,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
+    @Override
     public ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ModuleRevisionId requestedRevisionId,
             CacheMetadataOptions options, String expectedResolver) {
         ModuleRevisionId mrid = requestedRevisionId;
@@ -547,6 +552,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             this.settings = settings;
         }
 
+        @Override
         public ModuleDescriptor provideModule(ParserSettings ivySettings,
                 File descriptorURL, boolean validate) throws ParseException, IOException {
             return mdParser.parseDescriptor(settings, descriptorURL.toURI().toURL(), validate);
@@ -602,6 +608,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
+    @Override
     public void saveResolvedRevision(ModuleRevisionId mrid, String revision) {
         if (!getMetadataHandler().lockMetadataArtifact(mrid)) {
             Message.error("impossible to acquire lock for " + mrid);
@@ -639,6 +646,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     }
 
 
+    @Override
     public ArtifactDownloadReport download(Artifact artifact, ArtifactResourceResolver resourceResolver,
             ResourceDownloader resourceDownloader, CacheDownloadOptions options) {
         final ArtifactDownloadReport adr = new ArtifactDownloadReport(artifact);
@@ -722,8 +730,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                             if (listener != null) {
                                 listener.startArtifactDownload(this, artifactRef, artifact, origin);
                             }
-
-                            resourceDownloader.download(artifact, artifactRef.getResource(), archiveFile);
+                            Resource resource = artifactRef.getResource();
+                            resourceDownloader.download(artifact, resource, archiveFile);
+                            Resource csRes = resource.clone(resource.getName() + "." + "md5");
                             adr.setSize(archiveFile.length());
                             saveArtifactOrigin(artifact, origin);
                             adr.setDownloadTimeMillis(System.currentTimeMillis() - start);
@@ -751,6 +760,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
+    @Override
     public void originalToCachedModuleDescriptor(DependencyResolver resolver, ResolvedResource orginalMetadataRef,
             Artifact requestedMetadataArtifact, ResolvedModuleRevision rmr, ModuleDescriptorWriter writer) {
         ModuleDescriptor md = rmr.getDescriptor();
@@ -787,6 +797,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
     }
 
+    @Override
     public ResolvedModuleRevision cacheModuleDescriptor(DependencyResolver resolver, final ResolvedResource mdRef,
             DependencyDescriptor dd, Artifact moduleArtifact, ResourceDownloader downloader,
             CacheMetadataOptions options) throws ParseException {
@@ -876,6 +887,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             originalMetadataArtifact = ArtifactMetadata.fillResolverId(originalMetadataArtifact, resolverId);
             // now download module descriptor and parse it
             report = download(originalMetadataArtifact, new ArtifactResourceResolver() {
+                @Override
                 public ResolvedResource resolve(Artifact artifact) {
                     return mdRef;
                 }
@@ -1013,6 +1025,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         return isCheckmodified();
     }
 
+    @Override
     public void clean() {
         FileUtil.forceDelete(getBasedir());
     }
@@ -1036,6 +1049,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             this.delegate = delegate;
         }
 
+        @Override
         public void download(Artifact artifact, Resource resource, File dest) throws IOException {
             // keep a copy of the original file
             if (dest.exists()) {
@@ -1044,6 +1058,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 FileUtil.copy(dest, backup, null, true);
             }
             delegate.download(artifact, resource, dest);
+            //((BasicResolver) delegate).getChecksumAlgorithms();
         }
 
         public void restore() throws IOException {

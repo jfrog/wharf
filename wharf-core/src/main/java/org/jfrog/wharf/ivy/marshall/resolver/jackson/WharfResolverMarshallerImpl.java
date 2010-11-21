@@ -3,6 +3,7 @@ package org.jfrog.wharf.ivy.marshall.resolver.jackson;
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.type.TypeReference;
 import org.jfrog.wharf.ivy.marshall.JacksonFactory;
 import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -29,7 +30,9 @@ public class WharfResolverMarshallerImpl implements WharfResolverMarshaller {
             try {
                 stream = new FileInputStream(resolversFile);
                 JsonParser jsonParser = JacksonFactory.createJsonParser(stream);
-                return jsonParser.readValueAs(Set.class);
+                return jsonParser.readValueAs(new TypeReference<Set<WharfResolverMetadata>>() {
+
+                });
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } finally {

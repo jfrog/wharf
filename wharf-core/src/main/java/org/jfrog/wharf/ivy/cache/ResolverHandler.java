@@ -96,6 +96,7 @@ public class ResolverHandler implements IvySettingsAware {
         wharfResolverMarshaller.save(baseDir, new HashSet<WharfResolverMetadata>(getAllResolvers()));
     }
 
+    @Override
     public void setSettings(IvySettings settings) {
         this.settings = settings;
     }
