@@ -31,7 +31,7 @@ public abstract class KryoFactory {
 
     public static ObjectBuffer createModuleRevisionMetadataObjectBuffer(Class<ModuleRevisionMetadata> mrmClazz) {
         Kryo kryo = new Kryo();
-        kryo.register(ModuleRevisionMetadata.class);
+        kryo.register(mrmClazz);
         kryo.register(HashSet.class);
         kryo.register(ArtifactMetadata.class);
         ObjectBuffer buffer = new ObjectBuffer(kryo);
