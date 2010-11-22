@@ -25,6 +25,7 @@ public class CacheMetadataHandler implements IvySettingsAware {
 
     private static final String DEFAULT_DATA_FILE_PATTERN =
             "[organisation]/[module](/[branch])/wharfdata-[revision].json";
+    private static final ArtifactLockStrategy LOCK_STRATEGY = new ArtifactLockStrategy();
 
     // todo: use Ivy's typedef
     private final MrmMarshaller mrmMarshaller = new MrmMarshallerImpl();
@@ -40,7 +41,7 @@ public class CacheMetadataHandler implements IvySettingsAware {
 
     public CacheMetadataHandler(File baseDir) {
         this.baseDir = baseDir;
-        setLockStrategy(new ArtifactLockStrategy());
+        setLockStrategy(LOCK_STRATEGY);
     }
 
     public void saveModuleRevisionMetadata(ModuleRevisionId mrid, ModuleRevisionMetadata mrm) {
