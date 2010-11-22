@@ -1,0 +1,34 @@
+group = 'org.jfrog.wharf'
+version = '1.0-SNAPSHOT'
+apply {
+  apply plugin: 'java'
+  apply plugin: 'maven'
+  apply plugin: 'idea'
+}
+
+ideaProject {
+  javaVersion = '1.6'
+}
+
+dependencies {
+  compile gradleApi()
+  compile group: 'org.apache.ivy', name: 'ivy', version: '2.2.0'
+  compile group: 'org.jfrog.wharf', name: 'wharf-core', version: '1.0-SNAPSHOT'
+  testCompile group: 'junit', name: 'junit', version: '4.8.1'
+  testCompile group: 'org.spockframework', name: 'spock-core', version: '0.4-groovy-1.7'
+}
+
+task sourceJar(type: Jar) {
+  classifier = 'sources'
+  from sourceSets.main.java
+}
+
+task testJar(type: Jar) {
+  classifier = 'tests'
+  from sourceSets.test.java
+}
+
+artifacts {
+  archives sourceJar
+}
+
