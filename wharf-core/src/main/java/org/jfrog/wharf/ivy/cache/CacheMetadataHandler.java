@@ -72,6 +72,7 @@ public class CacheMetadataHandler implements IvySettingsAware {
         return new File(baseDir, wharfDataFileLocation);
     }
 
+    @Override
     public void setSettings(IvySettings settings) {
         this.settings = settings;
     }
