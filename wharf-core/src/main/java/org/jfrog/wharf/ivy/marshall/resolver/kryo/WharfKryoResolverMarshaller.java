@@ -1,8 +1,8 @@
 package org.jfrog.wharf.ivy.marshall.resolver.kryo;
 
 
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.ObjectBuffer;
+import org.jfrog.wharf.ivy.marshall.factory.KryoFactory;
 import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -28,12 +27,7 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
             OutputStream stream = null;
             try {
                 stream = new FileOutputStream(resolversFile);
-                Kryo kryo = new Kryo();
-                kryo.register(WharfResolverMetadata.class);
-                kryo.register(Set.class);
-                kryo.register(Map.class);
-                kryo.register(String[].class);
-                ObjectBuffer buffer = new ObjectBuffer(kryo);
+                ObjectBuffer buffer = KryoFactory.createWharfResolverObjectBuffer(WharfResolverMetadata.class);
                 buffer.writeObject(stream, wharfResolverMetadatas);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -56,12 +50,7 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
             InputStream stream = null;
             try {
                 stream = new FileInputStream(resolversFile);
-                Kryo kryo = new Kryo();
-                kryo.register(WharfResolverMetadata.class);
-                kryo.register(Set.class);
-                kryo.register(Map.class);
-                kryo.register(String[].class);
-                ObjectBuffer buffer = new ObjectBuffer(kryo);
+                ObjectBuffer buffer = KryoFactory.createWharfResolverObjectBuffer(WharfResolverMetadata.class);
                 return buffer.readObject(stream, Set.class);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);

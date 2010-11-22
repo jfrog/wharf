@@ -1,11 +1,10 @@
 package org.jfrog.wharf.ivy.marshall.metadata.kryo;
 
 
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.ObjectBuffer;
 import org.apache.ivy.util.Message;
+import org.jfrog.wharf.ivy.marshall.factory.KryoFactory;
 import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
-import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
@@ -14,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashSet;
 
 /**
  * @author Tomer Cohen
@@ -27,11 +25,8 @@ public class MrmKryoMarshallerImpl implements MrmMarshaller {
             InputStream inputStream = null;
             try {
                 inputStream = new FileInputStream(file);
-                Kryo kryo = new Kryo();
-                kryo.register(ModuleRevisionMetadata.class);
-                kryo.register(HashSet.class);
-                kryo.register(ArtifactMetadata.class);
-                ObjectBuffer buffer = new ObjectBuffer(kryo);
+                ObjectBuffer buffer =
+                        KryoFactory.createModuleRevisionMetadataObjectBuffer(ModuleRevisionMetadata.class);
                 return buffer.readObject(inputStream, ModuleRevisionMetadata.class);
             } catch (IOException ioe) {
                 Message.error("Error loading module revision metadata file: " + file.getAbsolutePath());
@@ -59,11 +54,7 @@ public class MrmKryoMarshallerImpl implements MrmMarshaller {
                 dir.mkdirs();
             }
             stream = new FileOutputStream(file);
-            Kryo kryo = new Kryo();
-            kryo.register(ModuleRevisionMetadata.class);
-            kryo.register(ArtifactMetadata.class);
-            kryo.register(HashSet.class);
-            ObjectBuffer buffer = new ObjectBuffer(kryo);
+            ObjectBuffer buffer = KryoFactory.createModuleRevisionMetadataObjectBuffer(ModuleRevisionMetadata.class);
             buffer.writeObject(stream, mrm);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
