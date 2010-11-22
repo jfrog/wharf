@@ -113,6 +113,21 @@ public class WharfResolver extends IBiblioResolver {
         int id = cacheManager.getResolverHandler().getResolver(moduleRevision.getResolver()).getId();
         artifact = ArtifactMetadata.fillResolverId(artifact, id);
         ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
+        calculateChecksums(moduleRevision, artMd);
+        metadata.artifactMetadata.remove(artMd);
+        metadata.artifactMetadata.add(artMd);
+        updateCachePropertiesToCurrentTime(metadata);
+        Long lastResolvedTime = getLastResolvedTime(metadata);
+        cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
+        if (snapshotTimeout.isCacheTimedOut(lastResolvedTime)) {
+            setChangingPattern(".*-SNAPSHOT");
+            return null;
+        } else {
+            return moduleRevision;
+        }
+    }
+
+    private void calculateChecksums(ResolvedModuleRevision moduleRevision, ArtifactMetadata artMd) {
         String[] algorithms = getChecksumAlgorithms();
         for (String algorithm : algorithms) {
             File localFile = moduleRevision.getReport().getLocalFile();
@@ -126,17 +141,6 @@ public class WharfResolver extends IBiblioResolver {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        }
-        metadata.artifactMetadata.remove(artMd);
-        metadata.artifactMetadata.add(artMd);
-        updateCachePropertiesToCurrentTime(metadata);
-        Long lastResolvedTime = getLastResolvedTime(metadata);
-        cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
-        if (snapshotTimeout.isCacheTimedOut(lastResolvedTime)) {
-            setChangingPattern(".*-SNAPSHOT");
-            return null;
-        } else {
-            return moduleRevision;
         }
     }
 
