@@ -23,21 +23,19 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
     @Override
     public void save(File baseDir, Set<WharfResolverMetadata> wharfResolverMetadatas) {
         File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
-        if (resolversFile.exists()) {
-            OutputStream stream = null;
-            try {
-                stream = new FileOutputStream(resolversFile);
-                ObjectBuffer buffer = KryoFactory.createWharfResolverObjectBuffer(WharfResolverMetadata.class);
-                buffer.writeObject(stream, wharfResolverMetadatas);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } finally {
-                if ((stream != null)) {
-                    try {
-                        stream.close();
-                    } catch (IOException e) {
-                        // ignore
-                    }
+        OutputStream stream = null;
+        try {
+            stream = new FileOutputStream(resolversFile);
+            ObjectBuffer buffer = KryoFactory.createWharfResolverObjectBuffer(WharfResolverMetadata.class);
+            buffer.writeObject(stream, wharfResolverMetadatas);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if ((stream != null)) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                    // ignore
                 }
             }
         }
