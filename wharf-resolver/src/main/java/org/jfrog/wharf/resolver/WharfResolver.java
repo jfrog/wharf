@@ -19,8 +19,10 @@ import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
+import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.util.ChecksumHelper;
+import org.apache.ivy.util.FileUtil;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -125,6 +127,27 @@ public class WharfResolver extends IBiblioResolver {
         } else {
             return moduleRevision;
         }
+    }
+
+    @Override
+    protected long getAndCheck(Resource resource, File dest) throws IOException {
+        get(resource, dest);
+        String[] algorithms = getChecksumAlgorithms();
+        for (String algorithm : algorithms) {
+            Resource csRes = resource.clone(resource.getName() + "." + algorithm);
+            if (csRes.exists()) {
+                File tempChecksum = File.createTempFile("temp", ".tmp");
+                get(csRes, tempChecksum);
+                try {
+                    ChecksumHelper.check(dest, tempChecksum, algorithm);
+                } catch (IOException e) {
+                    FileUtil.forceDelete(dest);
+                } finally {
+                    FileUtil.forceDelete(tempChecksum);
+                }
+            }
+        }
+        return 0L;
     }
 
     private void calculateChecksums(ResolvedModuleRevision moduleRevision, ArtifactMetadata artMd) {
