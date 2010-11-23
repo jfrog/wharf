@@ -10,7 +10,7 @@ import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.lock.LockStrategy;
 import org.apache.ivy.plugins.lock.NoLockStrategy;
-import org.jfrog.wharf.ivy.marshall.metadata.Jackson.MrmMarshallerImpl;
+import org.jfrog.wharf.ivy.marshall.factory.MarshallerFactory;
 import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -23,12 +23,10 @@ import java.util.Date;
  */
 public class CacheMetadataHandler implements IvySettingsAware {
 
-    private static final String DEFAULT_DATA_FILE_PATTERN =
-            "[organisation]/[module](/[branch])/wharfdata-[revision].json";
+
     private static final ArtifactLockStrategy LOCK_STRATEGY = new ArtifactLockStrategy();
 
-    // todo: use Ivy's typedef
-    private final MrmMarshaller mrmMarshaller = new MrmMarshallerImpl();
+    private final MrmMarshaller mrmMarshaller = MarshallerFactory.createMetadataMarshaller();
 
     private File baseDir;
 
@@ -69,7 +67,7 @@ public class CacheMetadataHandler implements IvySettingsAware {
     }
 
     private File getWharfDataFile(ModuleRevisionId mrid) {
-        String wharfDataFileLocation = IvyPatternHelper.substitute(DEFAULT_DATA_FILE_PATTERN, mrid);
+        String wharfDataFileLocation = IvyPatternHelper.substitute(mrmMarshaller.getDataFilePattern(), mrid);
         return new File(baseDir, wharfDataFileLocation);
     }
 

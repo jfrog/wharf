@@ -13,7 +13,8 @@ public interface WharfResolverMarshaller {
     /**
      * The default path where to store <b>ALL</b> resolvers that were ever used by this cache.
      */
-    String RESOLVERS_FILE_PATH = ".wharf/resolvers.json";
+    public String getResolversFilePath();
+
 
     /**
      * Save the wharf resolver meatadatas as a serialized object.

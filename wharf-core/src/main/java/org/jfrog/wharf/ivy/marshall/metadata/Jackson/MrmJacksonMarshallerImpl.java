@@ -18,7 +18,10 @@ import java.io.OutputStream;
 /**
  * @author Tomer Cohen
  */
-public class MrmMarshallerImpl implements MrmMarshaller {
+public class MrmJacksonMarshallerImpl implements MrmMarshaller {
+
+    private static final String DEFAULT_DATA_FILE_PATTERN =
+            "[organisation]/[module](/[branch])/wharfdata-[revision].json";
 
     @Override
     public ModuleRevisionMetadata getModuleRevisionMetadata(File file) {
@@ -67,5 +70,10 @@ public class MrmMarshallerImpl implements MrmMarshaller {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDataFilePattern() {
+        return DEFAULT_DATA_FILE_PATTERN;
     }
 }

@@ -20,7 +20,8 @@ import java.util.Set;
 /**
  * @author Tomer Cohen
  */
-public class WharfResolverMarshallerImpl implements WharfResolverMarshaller {
+public class WharfJacksonResolverMarshallerImpl implements WharfResolverMarshaller {
+    private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.json";
 
     @Override
     public Set<WharfResolverMetadata> getWharfMetadatas(File baseDir) {
@@ -47,6 +48,11 @@ public class WharfResolverMarshallerImpl implements WharfResolverMarshaller {
         } else {
             return new HashSet<WharfResolverMetadata>();
         }
+    }
+
+    @Override
+    public String getResolversFilePath() {
+        return RESOLVERS_FILE_PATH;
     }
 
     @Override

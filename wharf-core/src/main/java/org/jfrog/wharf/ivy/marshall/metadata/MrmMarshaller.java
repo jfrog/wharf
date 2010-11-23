@@ -11,4 +11,6 @@ public interface MrmMarshaller {
     ModuleRevisionMetadata getModuleRevisionMetadata(File file);
 
     void save(ModuleRevisionMetadata mrm, File file);
+
+    public String getDataFilePattern();
 }

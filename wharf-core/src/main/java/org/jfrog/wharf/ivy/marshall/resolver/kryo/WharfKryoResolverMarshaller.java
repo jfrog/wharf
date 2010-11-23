@@ -19,6 +19,12 @@ import java.util.Set;
  * @author Tomer Cohen
  */
 public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
+    private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.kryo";
+
+    @Override
+    public String getResolversFilePath() {
+        return RESOLVERS_FILE_PATH;
+    }
 
     @Override
     public void save(File baseDir, Set<WharfResolverMetadata> wharfResolverMetadatas) {

@@ -4,8 +4,8 @@ import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
+import org.jfrog.wharf.ivy.marshall.factory.MarshallerFactory;
 import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
-import org.jfrog.wharf.ivy.marshall.resolver.jackson.WharfResolverMarshallerImpl;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;
@@ -30,7 +30,7 @@ public class ResolverHandler implements IvySettingsAware {
     private final Map<Integer, WharfResolverMetadata> resolvers = new HashMap<Integer, WharfResolverMetadata>();
     private final Map<Integer, WharfResolverMetadata> resolverFromDependencyResolverHash =
             new HashMap<Integer, WharfResolverMetadata>();
-    private WharfResolverMarshaller wharfResolverMarshaller = new WharfResolverMarshallerImpl();
+    private WharfResolverMarshaller wharfResolverMarshaller = MarshallerFactory.createWharfResolverMarshaller();
     private IvySettings settings;
     private static final WharfResolverMetadata LOCAL_WHARF_METADATA = new WharfResolverMetadata("local-wharf", "wharf");
 
