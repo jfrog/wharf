@@ -1,6 +1,6 @@
-group = 'org.jfrog.wharf'
-version = '1.0-SNAPSHOT'
 allprojects {
+  group = 'org.jfrog.wharf'
+  version = '1.0-SNAPSHOT'
   apply {
     apply plugin: 'java'
     apply plugin: 'maven'
