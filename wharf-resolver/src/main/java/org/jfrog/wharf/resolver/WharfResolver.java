@@ -15,11 +15,12 @@
  */
 package org.jfrog.wharf.resolver;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.ivy.core.LogOptions;
 import org.apache.ivy.core.cache.ArtifactOrigin;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
@@ -44,11 +45,14 @@ import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * @author Hans Dockter
@@ -249,46 +253,67 @@ public class WharfResolver extends IBiblioResolver {
         String[] algorithms = getChecksumAlgorithms();
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         Artifact artifact = DOWNLOADER.getArtifact();
-        ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
-        if (artMd == null) {
+        ModuleRevisionMetadata mrm =
+                cacheManager.getMetadataHandler().getModuleRevisionMetadata(artifact.getModuleRevisionId());
+        if (mrm == null) {
             get(resource, dest);
             return dest.length();
         }
-        for (String algorithm : algorithms) {
-            Resource csRes = resource.clone(resource.getName() + "." + algorithm);
-            if (csRes.exists()) {
-                File tempChecksum = File.createTempFile("temp", ".tmp");
-                get(csRes, tempChecksum);
-                try {
-                    if (StringUtils.isNotBlank(artMd.md5) && "md5".equals(algorithm)) {
-                        try {
-                            ChecksumHelper.check(dest, tempChecksum, "md5");
-                            ModuleRevisionMetadata metadata = cacheManager.getMetadataHandler()
-                                    .getModuleRevisionMetadata(artifact.getModuleRevisionId());
-                        } catch (IOException e) {
-                            // recalculate checksum
+        if (mrm.artifactMetadata.isEmpty()) {
+            get(resource, dest);
+            return dest.length();
+        }
+        ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
+        if (artMd == null) {
+            for (String algorithm : algorithms) {
+                Resource csRes = resource.clone(resource.getName() + "." + algorithm);
+                if (csRes.exists()) {
+                    File tempChecksum = File.createTempFile("temp", ".tmp");
+                    get(csRes, tempChecksum);
+                    try {
+                        if ("md5".equals(algorithm)) {
+                            try {
+                                String csFileContent = FileUtil.readEntirely(
+                                        new BufferedReader(new FileReader(tempChecksum))).trim().toLowerCase(Locale.US);
+                                int id = getResolverId(mrm, csFileContent);
+                                if (id == 0) {
+                                    get(resource, dest);
+                                    return dest.length();
+                                }
+                                Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(),
+                                        artifact.getPublicationDate(), artifact.getName(),
+                                        artifact.getType(), artifact.getExt(),
+                                        artifact.getExtraAttributes());
+                                newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
+                                File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
+                                ChecksumHelper.check(fileInCache, tempChecksum, "md5");
+                                FileUtils.copyFile(fileInCache, dest);
+                            } catch (IOException e) {
+                                // recalculate checksum
+                            }
                         }
+                        artMd = new ArtifactMetadata(artifact);
+                        mrm.artifactMetadata.remove(artMd);
+                        mrm.artifactMetadata.add(artMd);
+                        cacheManager.getMetadataHandler()
+                                .saveModuleRevisionMetadata(artifact.getModuleRevisionId(), mrm);
+                        break;
+                    } finally {
+                        FileUtil.forceDelete(tempChecksum);
                     }
-                    if (StringUtils.isNotBlank(artMd.sha1) && "sha1".equals(algorithm)) {
-                        try {
-                            ChecksumHelper.check(dest, tempChecksum, "sha1");
-                        } catch (IOException e) {
-                            // recalculate checksum
-                        }
-                    }
-                    ModuleRevisionMetadata metadata = cacheManager.getMetadataHandler()
-                            .getModuleRevisionMetadata(artifact.getModuleRevisionId());
-                    metadata.artifactMetadata.remove(artMd);
-                    metadata.artifactMetadata.add(artMd);
-                    cacheManager.getMetadataHandler()
-                            .saveModuleRevisionMetadata(artifact.getModuleRevisionId(), metadata);
-                    break;
-                } finally {
-                    FileUtil.forceDelete(tempChecksum);
                 }
             }
         }
         return dest.length();
+    }
+
+    private int getResolverId(ModuleRevisionMetadata metadata, String md5) {
+        for (ArtifactMetadata artMd : metadata.artifactMetadata) {
+            if (md5.equals(artMd.md5)) {
+                return artMd.artResolverId;
+            }
+        }
+        return 0;
     }
 
     private void updateCachePropertiesToCurrentTime(ModuleRevisionMetadata cacheProperties) {
