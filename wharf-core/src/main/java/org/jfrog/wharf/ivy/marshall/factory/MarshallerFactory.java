@@ -18,7 +18,7 @@ public abstract class MarshallerFactory {
         try {
             marshallerClass =
                     (Class<? extends MrmMarshaller>) Class
-                            .forName("org.jfrog.wharf.ivy.marshall.metadata.Jackson.MrmMarshallerImpl");
+                            .forName("org.jfrog.wharf.ivy.marshall.metadata.Jackson.MrmJacksonMarshallerImpl");
         } catch (ClassNotFoundException e) {
             try {
                 marshallerClass =
