@@ -15,20 +15,38 @@
  */
 package org.jfrog.wharf.resolver;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.ivy.core.LogOptions;
+import org.apache.ivy.core.cache.ArtifactOrigin;
+import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.core.report.ArtifactDownloadReport;
+import org.apache.ivy.core.report.DownloadReport;
+import org.apache.ivy.core.report.DownloadStatus;
+import org.apache.ivy.core.resolve.DownloadOptions;
+import org.apache.ivy.core.resolve.IvyNode;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
+import org.apache.ivy.plugins.parser.ModuleDescriptorParser;
+import org.apache.ivy.plugins.parser.ModuleDescriptorParserRegistry;
+import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
+import org.apache.ivy.plugins.resolver.util.ResolvedResource;
+import org.apache.ivy.util.Checks;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
+import org.apache.ivy.util.Message;
+import org.jfrog.wharf.downloader.WharfResourceDownloader;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -69,6 +87,7 @@ public class WharfResolver extends IBiblioResolver {
             return true;
         }
     };
+    private final WharfResourceDownloader DOWNLOADER = new WharfResourceDownloader(this);
 
     private CacheTimeoutStrategy snapshotTimeout = DAILY;
 
@@ -111,13 +130,6 @@ public class WharfResolver extends IBiblioResolver {
         }
         ModuleRevisionMetadata metadata = getCacheProperties(dd, moduleRevision);
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        Artifact artifact = moduleRevision.getDescriptor().getMetadataArtifact();
-        int id = cacheManager.getResolverHandler().getResolver(moduleRevision.getResolver()).getId();
-        artifact = ArtifactMetadata.fillResolverId(artifact, id);
-        ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
-        calculateChecksums(moduleRevision, artMd);
-        metadata.artifactMetadata.remove(artMd);
-        metadata.artifactMetadata.add(artMd);
         updateCachePropertiesToCurrentTime(metadata);
         Long lastResolvedTime = getLastResolvedTime(metadata);
         cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
@@ -130,41 +142,153 @@ public class WharfResolver extends IBiblioResolver {
     }
 
     @Override
-    protected long getAndCheck(Resource resource, File dest) throws IOException {
-        get(resource, dest);
+    public ArtifactDownloadReport download(final ArtifactOrigin origin, DownloadOptions options) {
+        Checks.checkNotNull(origin, "origin");
+        return getRepositoryCacheManager().download(
+                origin.getArtifact(),
+                new ArtifactResourceResolver() {
+                    @Override
+                    public ResolvedResource resolve(Artifact artifact) {
+                        try {
+                            Resource resource = getResource(origin.getLocation());
+                            if (resource == null) {
+                                return null;
+                            }
+                            String revision = origin.getArtifact().getModuleRevisionId().getRevision();
+                            return new ResolvedResource(resource, revision);
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    }
+                },
+                DOWNLOADER,
+                getCacheDownloadOptions(options));
+    }
+
+    @Override
+    public ResolvedModuleRevision parse(final ResolvedResource mdRef, DependencyDescriptor dd,
+            ResolveData data) throws ParseException {
+
+        DependencyDescriptor nsDd = dd;
+        dd = toSystem(nsDd);
+
+        ModuleRevisionId mrid = dd.getDependencyRevisionId();
+        ModuleDescriptorParser parser = ModuleDescriptorParserRegistry
+                .getInstance().getParser(mdRef.getResource());
+        if (parser == null) {
+            Message.warn("no module descriptor parser available for " + mdRef.getResource());
+            return null;
+        }
+        Message.verbose("\t" + getName() + ": found md file for " + mrid);
+        Message.verbose("\t\t=> " + mdRef);
+        Message.debug("\tparser = " + parser);
+
+        ModuleRevisionId resolvedMrid = mrid;
+
+        // first check if this dependency has not yet been resolved
+        if (getSettings().getVersionMatcher().isDynamic(mrid)) {
+            resolvedMrid = ModuleRevisionId.newInstance(mrid, mdRef.getRevision());
+            IvyNode node = data.getNode(resolvedMrid);
+            if (node != null && node.getModuleRevision() != null) {
+                // this revision has already be resolved : return it
+                if (node.getDescriptor() != null && node.getDescriptor().isDefault()) {
+                    Message.verbose("\t" + getName() + ": found already resolved revision: "
+                            + resolvedMrid
+                            + ": but it's a default one, maybe we can find a better one");
+                } else {
+                    Message.verbose("\t" + getName() + ": revision already resolved: "
+                            + resolvedMrid);
+                    node.getModuleRevision().getReport().setSearched(true);
+                    return node.getModuleRevision();
+                }
+            }
+        }
+
+        Artifact moduleArtifact = parser.getMetadataArtifact(resolvedMrid, mdRef.getResource());
+        return getRepositoryCacheManager().cacheModuleDescriptor(this, mdRef, dd, moduleArtifact, DOWNLOADER,
+                getCacheOptions(data));
+    }
+
+    @Override
+    public DownloadReport download(Artifact[] artifacts, DownloadOptions options) {
+        RepositoryCacheManager cacheManager = getRepositoryCacheManager();
+
+        clearArtifactAttempts();
+        DownloadReport dr = new DownloadReport();
+        for (Artifact artifact : artifacts) {
+            ArtifactDownloadReport adr = cacheManager.download(
+                    artifact, artifactResourceResolver, DOWNLOADER, getCacheDownloadOptions(options));
+            if (DownloadStatus.FAILED == adr.getDownloadStatus()) {
+                if (!ArtifactDownloadReport.MISSING_ARTIFACT.equals(adr.getDownloadDetails())) {
+                    Message.warn("\t" + adr);
+                }
+            } else if (DownloadStatus.NO == adr.getDownloadStatus()) {
+                Message.verbose("\t" + adr);
+            } else if (LogOptions.LOG_QUIET.equals(options.getLog())) {
+                Message.verbose("\t" + adr);
+            } else {
+                Message.info("\t" + adr);
+            }
+            dr.addArtifactReport(adr);
+            checkInterrupted();
+        }
+        return dr;
+    }
+
+    private final ArtifactResourceResolver artifactResourceResolver
+            = new ArtifactResourceResolver() {
+        @Override
+        public ResolvedResource resolve(Artifact artifact) {
+            artifact = fromSystem(artifact);
+            return getArtifactRef(artifact, null);
+        }
+    };
+
+    @Override
+    public long getAndCheck(Resource resource, File dest) throws IOException {
         String[] algorithms = getChecksumAlgorithms();
+        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
+        Artifact artifact = DOWNLOADER.getArtifact();
+        ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
+        if (artMd == null) {
+            get(resource, dest);
+            return dest.length();
+        }
         for (String algorithm : algorithms) {
             Resource csRes = resource.clone(resource.getName() + "." + algorithm);
             if (csRes.exists()) {
                 File tempChecksum = File.createTempFile("temp", ".tmp");
                 get(csRes, tempChecksum);
                 try {
-                    ChecksumHelper.check(dest, tempChecksum, algorithm);
-                } catch (IOException e) {
-                    FileUtil.forceDelete(dest);
+                    if (StringUtils.isNotBlank(artMd.md5) && "md5".equals(algorithm)) {
+                        try {
+                            ChecksumHelper.check(dest, tempChecksum, "md5");
+                            ModuleRevisionMetadata metadata = cacheManager.getMetadataHandler()
+                                    .getModuleRevisionMetadata(artifact.getModuleRevisionId());
+                        } catch (IOException e) {
+                            // recalculate checksum
+                        }
+                    }
+                    if (StringUtils.isNotBlank(artMd.sha1) && "sha1".equals(algorithm)) {
+                        try {
+                            ChecksumHelper.check(dest, tempChecksum, "sha1");
+                        } catch (IOException e) {
+                            // recalculate checksum
+                        }
+                    }
+                    ModuleRevisionMetadata metadata = cacheManager.getMetadataHandler()
+                            .getModuleRevisionMetadata(artifact.getModuleRevisionId());
+                    metadata.artifactMetadata.remove(artMd);
+                    metadata.artifactMetadata.add(artMd);
+                    cacheManager.getMetadataHandler()
+                            .saveModuleRevisionMetadata(artifact.getModuleRevisionId(), metadata);
+                    break;
                 } finally {
                     FileUtil.forceDelete(tempChecksum);
                 }
             }
         }
-        return 0L;
-    }
-
-    private void calculateChecksums(ResolvedModuleRevision moduleRevision, ArtifactMetadata artMd) {
-        String[] algorithms = getChecksumAlgorithms();
-        for (String algorithm : algorithms) {
-            File localFile = moduleRevision.getReport().getLocalFile();
-            try {
-                String computedChecksum = ChecksumHelper.computeAsString(localFile, algorithm);
-                if ("sha1".equals(algorithm)) {
-                    artMd.sha1 = computedChecksum;
-                } else if ("md5".equals(algorithm)) {
-                    artMd.md5 = computedChecksum;
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        return dest.length();
     }
 
     private void updateCachePropertiesToCurrentTime(ModuleRevisionMetadata cacheProperties) {
