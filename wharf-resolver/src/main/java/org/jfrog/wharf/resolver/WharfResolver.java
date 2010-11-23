@@ -265,6 +265,7 @@ public class WharfResolver extends IBiblioResolver {
         }
         ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
         if (artMd == null) {
+            artMd = new ArtifactMetadata(artifact);
             for (String algorithm : algorithms) {
                 Resource csRes = resource.clone(resource.getName() + "." + algorithm);
                 if (csRes.exists()) {
@@ -272,44 +273,75 @@ public class WharfResolver extends IBiblioResolver {
                     get(csRes, tempChecksum);
                     try {
                         if ("md5".equals(algorithm)) {
+
+                            String csFileContent = FileUtil.readEntirely(
+                                    new BufferedReader(new FileReader(tempChecksum))).trim().toLowerCase(Locale.US);
+                            int id = getResolverIdByMd5(mrm, csFileContent);
+                            if (id == 0) {
+                                get(resource, dest);
+                                return dest.length();
+                            }
+                            Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(),
+                                    artifact.getPublicationDate(), artifact.getName(),
+                                    artifact.getType(), artifact.getExt(),
+                                    artifact.getExtraAttributes());
+                            newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
+                            File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
                             try {
-                                String csFileContent = FileUtil.readEntirely(
-                                        new BufferedReader(new FileReader(tempChecksum))).trim().toLowerCase(Locale.US);
-                                int id = getResolverId(mrm, csFileContent);
-                                if (id == 0) {
-                                    get(resource, dest);
-                                    return dest.length();
-                                }
-                                Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(),
-                                        artifact.getPublicationDate(), artifact.getName(),
-                                        artifact.getType(), artifact.getExt(),
-                                        artifact.getExtraAttributes());
-                                newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
-                                File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
                                 ChecksumHelper.check(fileInCache, tempChecksum, "md5");
                                 FileUtils.copyFile(fileInCache, dest);
+                                artMd.md5 = csFileContent;
+                            } catch (IOException e) {
+                                // recalculate checksum
+                            }
+                        } else if ("sha1".equals(algorithm)) {
+                            String csFileContent = FileUtil.readEntirely(
+                                    new BufferedReader(new FileReader(tempChecksum))).trim().toLowerCase(Locale.US);
+                            int id = getResolverIdBySha1(mrm, csFileContent);
+                            if (id == 0) {
+                                get(resource, dest);
+                                return dest.length();
+                            }
+                            Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(),
+                                    artifact.getPublicationDate(), artifact.getName(),
+                                    artifact.getType(), artifact.getExt(),
+                                    artifact.getExtraAttributes());
+                            newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
+                            File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
+                            try {
+                                ChecksumHelper.check(fileInCache, tempChecksum, "sha1");
+                                FileUtils.copyFile(fileInCache, dest);
+                                artMd.sha1 = csFileContent;
                             } catch (IOException e) {
                                 // recalculate checksum
                             }
                         }
-                        artMd = new ArtifactMetadata(artifact);
-                        mrm.artifactMetadata.remove(artMd);
-                        mrm.artifactMetadata.add(artMd);
-                        cacheManager.getMetadataHandler()
-                                .saveModuleRevisionMetadata(artifact.getModuleRevisionId(), mrm);
-                        break;
                     } finally {
                         FileUtil.forceDelete(tempChecksum);
                     }
+
                 }
             }
+            mrm.artifactMetadata.remove(artMd);
+            mrm.artifactMetadata.add(artMd);
+            cacheManager.getMetadataHandler()
+                    .saveModuleRevisionMetadata(artifact.getModuleRevisionId(), mrm);
         }
         return dest.length();
     }
 
-    private int getResolverId(ModuleRevisionMetadata metadata, String md5) {
+    private int getResolverIdByMd5(ModuleRevisionMetadata metadata, String md5) {
         for (ArtifactMetadata artMd : metadata.artifactMetadata) {
             if (md5.equals(artMd.md5)) {
+                return artMd.artResolverId;
+            }
+        }
+        return 0;
+    }
+
+    private int getResolverIdBySha1(ModuleRevisionMetadata metadata, String sha1) {
+        for (ArtifactMetadata artMd : metadata.artifactMetadata) {
+            if (sha1.equals(artMd.sha1)) {
                 return artMd.artResolverId;
             }
         }
