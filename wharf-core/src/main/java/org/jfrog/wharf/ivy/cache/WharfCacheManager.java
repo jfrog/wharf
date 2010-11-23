@@ -39,6 +39,7 @@ import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.plugins.resolver.URLResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
+import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.url.URLHandler;
@@ -736,9 +737,20 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                             }
                             Resource resource = artifactRef.getResource();
                             resourceDownloader.download(artifact, resource, archiveFile);
-                            Resource csRes = resource.clone(resource.getName() + "." + "md5");
                             adr.setSize(archiveFile.length());
                             saveArtifactOrigin(artifact, origin);
+                            ModuleRevisionMetadata metadata =
+                                    getMetadataHandler().getModuleRevisionMetadata(artifact.getModuleRevisionId());
+                            ArtifactMetadata artMd = getMetadataHandler().getArtifactMetadata(artifact);
+                            if ((artMd.md5 == null || artMd.md5.isEmpty())) {
+                                artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
+                            }
+                            if ((artMd.sha1 == null || artMd.sha1.isEmpty())) {
+                                artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
+                            }
+                            metadata.artifactMetadata.remove(artMd);
+                            metadata.artifactMetadata.add(artMd);
+                            getMetadataHandler().saveModuleRevisionMetadata(artifact.getModuleRevisionId(), metadata);
                             adr.setDownloadTimeMillis(System.currentTimeMillis() - start);
                             adr.setDownloadStatus(DownloadStatus.SUCCESSFUL);
                             adr.setArtifactOrigin(origin);
@@ -1062,7 +1074,6 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 FileUtil.copy(dest, backup, null, true);
             }
             delegate.download(artifact, resource, dest);
-            //((BasicResolver) delegate).getChecksumAlgorithms();
         }
 
         public void restore() throws IOException {
