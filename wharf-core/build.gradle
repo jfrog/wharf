@@ -1,5 +1,9 @@
 group = 'org.jfrog.wharf'
 version = '1.0-SNAPSHOT'
+
+configurations {
+  archives
+}
 apply {
   apply plugin: 'java'
   apply plugin: 'maven'

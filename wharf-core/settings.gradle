@@ -1,4 +1,1 @@
 include 'wharf-core'
-rootProject.configurations {
-  archives
-}
