@@ -1,39 +1,10 @@
-project {
-  group = 'org.jfrog.wharf'
-  version = '1.0-SNAPSHOT'
-  apply {
-    apply plugin: 'java'
-    apply plugin: 'maven'
-    apply plugin: 'idea'
-  }
-
-  ideaProject {
-    javaVersion = '1.6'
-  }
-
-  dependencies {
-    compile group: 'org.apache.ivy', name: 'ivy', version: '2.2.0'
-    compile group: 'org.apache.ant', name: 'ant', version: '1.8.1'
-    compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.5.6'
-    compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.5.6'
-    compile group: 'com.esotericsoftware', name: 'kryo', version: '1.03'
-    compile group: 'com.esotericsoftware', name: 'minlog', version: '1.2'
-    compile group: 'com.esotericsoftware', name: 'reflectasm', version: '1.0'
-    compile group: 'asm', name: 'asm', version: '3.2'
-    testCompile group: 'junit', name: 'junit', version: '4.8.1'
-  }
-
-  task sourceJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.java
-  }
-
-  task testJar(type: Jar) {
-    classifier = 'tests'
-    from sourceSets.test.java
-  }
-
-  artifacts {
-    archives sourceJar
-  }
+dependencies {
+  compile group: 'org.apache.ant', name: 'ant', version: '1.8.1'
+  compile group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.5.6'
+  compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.5.6'
+  compile group: 'com.esotericsoftware', name: 'kryo', version: '1.03'
+  compile group: 'com.esotericsoftware', name: 'minlog', version: '1.2'
+  compile group: 'com.esotericsoftware', name: 'reflectasm', version: '1.0'
+  compile group: 'asm', name: 'asm', version: '3.2'
 }
+
