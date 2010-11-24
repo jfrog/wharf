@@ -1,8 +1,5 @@
-package org.jfrog.wharf.ivy.marshall.factory;
+package org.jfrog.wharf.ivy.marshall.api;
 
-
-import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
-import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
 
 /**
  * @author Tomer Cohen

@@ -4,8 +4,8 @@ import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
-import org.jfrog.wharf.ivy.marshall.factory.MarshallerFactory;
-import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
+import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
+import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;

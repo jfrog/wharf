@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy.marshall.factory;
+package org.jfrog.wharf.ivy.marshall.kryo;
 
 
 import com.esotericsoftware.kryo.Kryo;

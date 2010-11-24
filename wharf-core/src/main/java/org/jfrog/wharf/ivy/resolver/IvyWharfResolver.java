@@ -27,21 +27,24 @@ import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
+import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 /**
  * @author Tomer Cohen
  */
 public class IvyWharfResolver extends IBiblioResolver {
-    @SuppressWarnings({"UnusedDeclaration"})
     protected static final String SHA1_ALGORITHM = "sha1";
     protected static final String MD5_ALGORITHM = "md5";
+
     private final WharfResourceDownloader DOWNLOADER = new WharfResourceDownloader(this);
     private final ArtifactResourceResolver artifactResourceResolver
             = new ArtifactResourceResolver() {
@@ -51,7 +54,36 @@ public class IvyWharfResolver extends IBiblioResolver {
             return getArtifactRef(artifact, null);
         }
     };
+    protected CacheTimeoutStrategy snapshotTimeout = DAILY;
 
+    public IvyWharfResolver() {
+        setChecksums(MD5_ALGORITHM + ", " + SHA1_ALGORITHM);
+    }
+
+    /**
+     * Returns the timeout strategy for a Maven Snapshot in the cache
+     */
+    public CacheTimeoutStrategy getSnapshotTimeout() {
+        return snapshotTimeout;
+    }
+
+    /**
+     * Sets the time in ms a Maven Snapshot in the cache is not checked for a newer version
+     *
+     * @param snapshotLifetime The lifetime in ms
+     */
+    public void setSnapshotTimeout(long snapshotLifetime) {
+        this.snapshotTimeout = new Interval(snapshotLifetime);
+    }
+
+    /**
+     * Sets a timeout strategy for a Maven Snapshot in the cache
+     *
+     * @param cacheTimeoutStrategy The strategy
+     */
+    public void setSnapshotTimeout(CacheTimeoutStrategy cacheTimeoutStrategy) {
+        this.snapshotTimeout = cacheTimeoutStrategy;
+    }
 
     @Override
     protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
@@ -205,24 +237,18 @@ public class IvyWharfResolver extends IBiblioResolver {
             if (id == 0) {
                 if (!dest.exists()) {
                     get(resource, dest);
+                    //TODO: [by tc] re-check
                 }
                 return dest.length();
             }
-            File tempChecksum = File.createTempFile("temp", "." + SHA1_ALGORITHM);
-            FileUtils.writeStringToFile(tempChecksum, sha1);
+            // If we get here, then the file was found in cache with the good checksum! just need to copy it
+            // to the destination.
             Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(), artifact.getPublicationDate(),
                     artifact.getName(), artifact.getType(), artifact.getExt(), artifact.getExtraAttributes());
             newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
             File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
-            try {
-                ChecksumHelper.check(fileInCache, tempChecksum, SHA1_ALGORITHM);
-                FileUtils.copyFile(fileInCache, dest);
-                artMd.sha1 = sha1;
-            } catch (IOException e) {
-                FileUtil.forceDelete(fileInCache);
-            } finally {
-                FileUtil.forceDelete(tempChecksum);
-            }
+            WharfUtils.copyCacheFile(fileInCache, dest);
+            artMd.sha1 = sha1;
             mrm.artifactMetadata.remove(artMd);
             mrm.artifactMetadata.add(artMd);
             cacheManager.getMetadataHandler().saveModuleRevisionMetadata(artifact.getModuleRevisionId(), mrm);
@@ -262,4 +288,53 @@ public class IvyWharfResolver extends IBiblioResolver {
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         return cacheManager.getMetadataHandler().getModuleRevisionMetadata(moduleRevision.getId());
     }
+
+    public interface CacheTimeoutStrategy {
+        boolean isCacheTimedOut(long lastResolvedTime);
+    }
+
+    public static class Interval implements CacheTimeoutStrategy {
+        private long interval;
+
+        public Interval(long interval) {
+            this.interval = interval;
+        }
+
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            return System.currentTimeMillis() - lastResolvedTime > interval;
+        }
+    }
+
+    public static final CacheTimeoutStrategy NEVER = new CacheTimeoutStrategy() {
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            return false;
+        }
+    };
+
+    public static final CacheTimeoutStrategy ALWAYS = new CacheTimeoutStrategy() {
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            return true;
+        }
+    };
+
+    public static final CacheTimeoutStrategy DAILY = new CacheTimeoutStrategy() {
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            Calendar calendarCurrent = Calendar.getInstance();
+            calendarCurrent.setTime(new Date());
+            int dayOfYear = calendarCurrent.get(Calendar.DAY_OF_YEAR);
+            int year = calendarCurrent.get(Calendar.YEAR);
+
+            Calendar calendarLastResolved = Calendar.getInstance();
+            calendarLastResolved.setTime(new Date(lastResolvedTime));
+            if (calendarLastResolved.get(Calendar.YEAR) == year &&
+                    calendarLastResolved.get(Calendar.DAY_OF_YEAR) == dayOfYear) {
+                return false;
+            }
+            return true;
+        }
+    };
 }

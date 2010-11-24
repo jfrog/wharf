@@ -1,11 +1,10 @@
-package org.jfrog.wharf.ivy.marshall.resolver.jackson;
+package org.jfrog.wharf.ivy.marshall.jackson;
 
 
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.type.TypeReference;
-import org.jfrog.wharf.ivy.marshall.factory.JacksonFactory;
-import org.jfrog.wharf.ivy.marshall.resolver.WharfResolverMarshaller;
+import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.io.File;

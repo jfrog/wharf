@@ -10,8 +10,8 @@ import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.lock.LockStrategy;
 import org.apache.ivy.plugins.lock.NoLockStrategy;
-import org.jfrog.wharf.ivy.marshall.factory.MarshallerFactory;
-import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
+import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
+import org.jfrog.wharf.ivy.marshall.api.MrmMarshaller;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 

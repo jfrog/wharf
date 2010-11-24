@@ -1,10 +1,9 @@
-package org.jfrog.wharf.ivy.marshall.metadata.kryo;
+package org.jfrog.wharf.ivy.marshall.kryo;
 
 
 import com.esotericsoftware.kryo.ObjectBuffer;
 import org.apache.ivy.util.Message;
-import org.jfrog.wharf.ivy.marshall.factory.KryoFactory;
-import org.jfrog.wharf.ivy.marshall.metadata.MrmMarshaller;
+import org.jfrog.wharf.ivy.marshall.api.MrmMarshaller;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 
 import java.io.File;
