@@ -1,21 +1,5 @@
-/*
- * Copyright 2010 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package org.jfrog.wharf.resolver;
+package org.jfrog.wharf.ivy.resolver;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.ivy.core.LogOptions;
 import org.apache.ivy.core.cache.ArtifactOrigin;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
@@ -40,7 +24,6 @@ import org.apache.ivy.util.Checks;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
-import org.jfrog.wharf.downloader.WharfResourceDownloader;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -50,79 +33,25 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
 
 /**
- * @author Hans Dockter
  * @author Tomer Cohen
  */
-public class WharfResolver extends IBiblioResolver {
-
-    public static final CacheTimeoutStrategy NEVER = new CacheTimeoutStrategy() {
-        @Override
-        public boolean isCacheTimedOut(long lastResolvedTime) {
-            return false;
-        }
-    };
-
-    public static final CacheTimeoutStrategy ALWAYS = new CacheTimeoutStrategy() {
-        @Override
-        public boolean isCacheTimedOut(long lastResolvedTime) {
-            return true;
-        }
-    };
-
-    public static final CacheTimeoutStrategy DAILY = new CacheTimeoutStrategy() {
-        @Override
-        public boolean isCacheTimedOut(long lastResolvedTime) {
-            Calendar calendarCurrent = Calendar.getInstance();
-            calendarCurrent.setTime(new Date());
-            int dayOfYear = calendarCurrent.get(Calendar.DAY_OF_YEAR);
-            int year = calendarCurrent.get(Calendar.YEAR);
-
-            Calendar calendarLastResolved = Calendar.getInstance();
-            calendarLastResolved.setTime(new Date(lastResolvedTime));
-            if (calendarLastResolved.get(Calendar.YEAR) == year &&
-                    calendarLastResolved.get(Calendar.DAY_OF_YEAR) == dayOfYear) {
-                return false;
-            }
-            return true;
-        }
-    };
+public class IvyWharfResolver extends IBiblioResolver {
+    @SuppressWarnings({"UnusedDeclaration"})
+    protected static final String SHA1_ALGORITHM = "sha1";
+    protected static final String MD5_ALGORITHM = "md5";
     private final WharfResourceDownloader DOWNLOADER = new WharfResourceDownloader(this);
+    private final ArtifactResourceResolver artifactResourceResolver
+            = new ArtifactResourceResolver() {
+        @Override
+        public ResolvedResource resolve(Artifact artifact) {
+            artifact = fromSystem(artifact);
+            return getArtifactRef(artifact, null);
+        }
+    };
 
-    private CacheTimeoutStrategy snapshotTimeout = DAILY;
-
-    {
-        setChecksums("md5, sha1");
-    }
-
-    /**
-     * Returns the timeout strategy for a Maven Snapshot in the cache
-     */
-    public CacheTimeoutStrategy getSnapshotTimeout() {
-        return snapshotTimeout;
-    }
-
-    /**
-     * Sets the time in ms a Maven Snapshot in the cache is not checked for a newer version
-     *
-     * @param snapshotLifetime The lifetime in ms
-     */
-    public void setSnapshotTimeout(long snapshotLifetime) {
-        this.snapshotTimeout = new Interval(snapshotLifetime);
-    }
-
-    /**
-     * Sets a timeout strategy for a Maven Snapshot in the cache
-     *
-     * @param cacheTimeoutStrategy The strategy
-     */
-    public void setSnapshotTimeout(CacheTimeoutStrategy cacheTimeoutStrategy) {
-        this.snapshotTimeout = cacheTimeoutStrategy;
-    }
 
     @Override
     protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
@@ -239,15 +168,6 @@ public class WharfResolver extends IBiblioResolver {
         return dr;
     }
 
-    private final ArtifactResourceResolver artifactResourceResolver
-            = new ArtifactResourceResolver() {
-        @Override
-        public ResolvedResource resolve(Artifact artifact) {
-            artifact = fromSystem(artifact);
-            return getArtifactRef(artifact, null);
-        }
-    };
-
     @Override
     public long getAndCheck(Resource resource, File dest) throws IOException {
         String[] algorithms = getChecksumAlgorithms();
@@ -266,66 +186,46 @@ public class WharfResolver extends IBiblioResolver {
         ArtifactMetadata artMd = cacheManager.getMetadataHandler().getArtifactMetadata(artifact);
         if (artMd == null) {
             artMd = new ArtifactMetadata(artifact);
-            for (String algorithm : algorithms) {
-                Resource csRes = resource.clone(resource.getName() + "." + algorithm);
-                if (csRes.exists()) {
-                    File tempChecksum = File.createTempFile("temp", ".tmp");
-                    get(csRes, tempChecksum);
-                    try {
-                        if ("md5".equals(algorithm)) {
-
-                            String csFileContent = FileUtil.readEntirely(
-                                    new BufferedReader(new FileReader(tempChecksum))).trim().toLowerCase(Locale.US);
-                            int id = getResolverIdByMd5(mrm, csFileContent);
-                            if (id == 0) {
-                                get(resource, dest);
-                                return dest.length();
-                            }
-                            Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(),
-                                    artifact.getPublicationDate(), artifact.getName(),
-                                    artifact.getType(), artifact.getExt(),
-                                    artifact.getExtraAttributes());
-                            newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
-                            File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
-                            try {
-                                ChecksumHelper.check(fileInCache, tempChecksum, "md5");
-                                FileUtils.copyFile(fileInCache, dest);
-                                artMd.md5 = csFileContent;
-                            } catch (IOException e) {
-                                // recalculate checksum
-                            }
-                        } else if ("sha1".equals(algorithm)) {
-                            String csFileContent = FileUtil.readEntirely(
-                                    new BufferedReader(new FileReader(tempChecksum))).trim().toLowerCase(Locale.US);
-                            int id = getResolverIdBySha1(mrm, csFileContent);
-                            if (id == 0) {
-                                get(resource, dest);
-                                return dest.length();
-                            }
-                            Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(),
-                                    artifact.getPublicationDate(), artifact.getName(),
-                                    artifact.getType(), artifact.getExt(),
-                                    artifact.getExtraAttributes());
-                            newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
-                            File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
-                            try {
-                                ChecksumHelper.check(fileInCache, tempChecksum, "sha1");
-                                FileUtils.copyFile(fileInCache, dest);
-                                artMd.sha1 = csFileContent;
-                            } catch (IOException e) {
-                                // recalculate checksum
-                            }
-                        }
-                    } finally {
-                        FileUtil.forceDelete(tempChecksum);
-                    }
-
+            Resource csRes = resource.clone(resource.getName() + "." + SHA1_ALGORITHM);
+            String sha1;
+            if (csRes.exists()) {
+                File tempChecksum = File.createTempFile("temp", ".tmp");
+                get(csRes, tempChecksum);
+                try {
+                    sha1 = FileUtil.readEntirely(new BufferedReader(new FileReader(tempChecksum))).trim().
+                            toLowerCase(Locale.US);
+                } finally {
+                    FileUtil.forceDelete(tempChecksum);
                 }
+            } else {
+                get(resource, dest);
+                sha1 = ChecksumHelper.computeAsString(dest, SHA1_ALGORITHM);
+            }
+            int id = getResolverIdBySha1(mrm, sha1);
+            if (id == 0) {
+                if (!dest.exists()) {
+                    get(resource, dest);
+                }
+                return dest.length();
+            }
+            File tempChecksum = File.createTempFile("temp", "." + SHA1_ALGORITHM);
+            FileUtils.writeStringToFile(tempChecksum, sha1);
+            Artifact newArtifact = new DefaultArtifact(artifact.getModuleRevisionId(), artifact.getPublicationDate(),
+                    artifact.getName(), artifact.getType(), artifact.getExt(), artifact.getExtraAttributes());
+            newArtifact = ArtifactMetadata.fillResolverId(newArtifact, id);
+            File fileInCache = cacheManager.getArchiveFileInCache(newArtifact);
+            try {
+                ChecksumHelper.check(fileInCache, tempChecksum, SHA1_ALGORITHM);
+                FileUtils.copyFile(fileInCache, dest);
+                artMd.sha1 = sha1;
+            } catch (IOException e) {
+                FileUtil.forceDelete(fileInCache);
+            } finally {
+                FileUtil.forceDelete(tempChecksum);
             }
             mrm.artifactMetadata.remove(artMd);
             mrm.artifactMetadata.add(artMd);
-            cacheManager.getMetadataHandler()
-                    .saveModuleRevisionMetadata(artifact.getModuleRevisionId(), mrm);
+            cacheManager.getMetadataHandler().saveModuleRevisionMetadata(artifact.getModuleRevisionId(), mrm);
         }
         return dest.length();
     }
@@ -362,23 +262,4 @@ public class WharfResolver extends IBiblioResolver {
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         return cacheManager.getMetadataHandler().getModuleRevisionMetadata(moduleRevision.getId());
     }
-
-    public interface CacheTimeoutStrategy {
-        boolean isCacheTimedOut(long lastResolvedTime);
-    }
-
-    public static class Interval implements CacheTimeoutStrategy {
-        private long interval;
-
-        public Interval(long interval) {
-            this.interval = interval;
-        }
-
-        @Override
-        public boolean isCacheTimedOut(long lastResolvedTime) {
-            return System.currentTimeMillis() - lastResolvedTime > interval;
-        }
-    }
 }
-
-

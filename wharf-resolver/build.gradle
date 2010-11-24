@@ -1,6 +1,6 @@
 dependencies {
   compile gradleApi()
+  compile project(":wharf-core")
   compile group: 'org.apache.ivy', name: 'ivy', version: '2.2.0'
-  compile group: 'org.jfrog.wharf', name: 'wharf-core', version: '1.0-SNAPSHOT'
   testCompile group: 'org.spockframework', name: 'spock-core', version: '0.4-groovy-1.7'
 }

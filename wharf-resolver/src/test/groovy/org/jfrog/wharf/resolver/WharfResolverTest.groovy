@@ -21,33 +21,33 @@ import spock.lang.Specification
  * @author Hans Dockter
  */
 class WharfResolverTest extends Specification {
-  WharfResolver wharfResolver = new WharfResolver()
+  GradleWharfResolver wharfResolver = new GradleWharfResolver()
 
   def testInit() {
     expect:
-    wharfResolver.getSnapshotTimeout().is(WharfResolver.DAILY)
+    wharfResolver.getSnapshotTimeout().is(org.jfrog.wharf.resolver.GradleWharfResolver().DAILY)
   }
 
   def timeoutStrategyNever_shouldReturnAlwaysFalse() {
     expect:
-    !WharfResolver.NEVER.isCacheTimedOut(0)
-    !WharfResolver.NEVER.isCacheTimedOut(System.currentTimeMillis())
+    !org.jfrog.wharf.resolver.GradleWharfResolver().NEVER.isCacheTimedOut(0)
+    !org.jfrog.wharf.resolver.GradleWharfResolver().NEVER.isCacheTimedOut(System.currentTimeMillis())
   }
 
   def timeoutStrategyAlways_shouldReturnAlwaysTrue() {
     expect:
-    WharfResolver.ALWAYS.isCacheTimedOut(0)
-    WharfResolver.ALWAYS.isCacheTimedOut(System.currentTimeMillis())
+    org.jfrog.wharf.resolver.GradleWharfResolver().ALWAYS.isCacheTimedOut(0)
+    org.jfrog.wharf.resolver.GradleWharfResolver().ALWAYS.isCacheTimedOut(System.currentTimeMillis())
   }
 
   def timeoutStrategyDaily() {
     expect:
-    !WharfResolver.DAILY.isCacheTimedOut(System.currentTimeMillis())
-    WharfResolver.ALWAYS.isCacheTimedOut(System.currentTimeMillis() - 24 * 60 * 60 * 1000)
+    !org.jfrog.wharf.resolver.GradleWharfResolver().DAILY.isCacheTimedOut(System.currentTimeMillis())
+    org.jfrog.wharf.resolver.GradleWharfResolver().ALWAYS.isCacheTimedOut(System.currentTimeMillis() - 24 * 60 * 60 * 1000)
   }
 
   def timeoutInterval() {
-    def interval = new WharfResolver.Interval(1000)
+    def interval = new GradleWharfResolver.Interval(1000)
 
     expect:
     interval.isCacheTimedOut(System.currentTimeMillis() - 5000)
@@ -59,14 +59,14 @@ class WharfResolverTest extends Specification {
     wharfResolver.setSnapshotTimeout(1000)
 
     then:
-    ((WharfResolver.Interval) wharfResolver.getSnapshotTimeout()).interval == 1000
+    ((GradleWharfResolver.Interval) wharfResolver.getSnapshotTimeout()).interval == 1000
   }
 
   def setTimeoutByStrategy() {
     when:
-    wharfResolver.setSnapshotTimeout(WharfResolver.NEVER)
+    wharfResolver.setSnapshotTimeout(org.jfrog.wharf.resolver.GradleWharfResolver().NEVER)
 
     then:
-    wharfResolver.getSnapshotTimeout().is(WharfResolver.NEVER)
+    wharfResolver.getSnapshotTimeout().is(org.jfrog.wharf.resolver.GradleWharfResolver().NEVER)
   }
 }

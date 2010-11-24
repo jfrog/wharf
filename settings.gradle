@@ -1,1 +1,1 @@
-include 'wharf-core', 'wharf-resolver'
+include 'wharf-core', 'wharf-gradle'
