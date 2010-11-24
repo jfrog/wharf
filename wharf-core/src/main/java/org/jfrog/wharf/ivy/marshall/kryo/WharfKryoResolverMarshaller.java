@@ -30,6 +30,10 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
         File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         OutputStream stream = null;
         try {
+            File dir = resolversFile.getParentFile();
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
             stream = new FileOutputStream(resolversFile);
             ObjectBuffer buffer = KryoFactory.createWharfResolverObjectBuffer(WharfResolverMetadata.class);
             buffer.writeObject(stream, wharfResolverMetadatas);
@@ -54,7 +58,7 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
             try {
                 stream = new FileInputStream(resolversFile);
                 ObjectBuffer buffer = KryoFactory.createWharfResolverObjectBuffer(WharfResolverMetadata.class);
-                return buffer.readObject(stream, Set.class);
+                return buffer.readObject(stream, HashSet.class);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             } finally {

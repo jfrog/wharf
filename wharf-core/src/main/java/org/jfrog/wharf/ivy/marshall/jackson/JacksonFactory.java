@@ -37,7 +37,7 @@ import java.io.OutputStream;
  *
  * @author Noam Tenne
  */
-public abstract class JacksonFactory {
+abstract class JacksonFactory {
     private JacksonFactory() {
         // utility class
     }

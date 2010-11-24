@@ -9,12 +9,11 @@ import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Tomer Cohen
  */
-public abstract class KryoFactory {
+abstract class KryoFactory {
 
     private KryoFactory() {
     }
@@ -22,7 +21,7 @@ public abstract class KryoFactory {
     public static ObjectBuffer createWharfResolverObjectBuffer(Class<WharfResolverMetadata> wharfResolverClazz) {
         Kryo kryo = new Kryo();
         kryo.register(wharfResolverClazz);
-        kryo.register(Set.class);
+        kryo.register(HashSet.class);
         kryo.register(Map.class);
         kryo.register(String[].class);
         ObjectBuffer buffer = new ObjectBuffer(kryo);

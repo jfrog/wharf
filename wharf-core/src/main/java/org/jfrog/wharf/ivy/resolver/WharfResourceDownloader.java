@@ -4,6 +4,7 @@ import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.repository.url.URLRepository;
+import org.apache.ivy.util.url.URLHandlerRegistry;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,17 +16,15 @@ public class WharfResourceDownloader implements ResourceDownloader {
 
     private URLRepository extartifactrep = new URLRepository(); // used only to download
 
-    private Artifact artifact;
     private final IvyWharfResolver resolver;
 
     public WharfResourceDownloader(IvyWharfResolver resolver) {
         this.resolver = resolver;
-        //URLHandlerRegistry.setDefault(URLHandlerRegistry.getHttp());
+        URLHandlerRegistry.setDefault(URLHandlerRegistry.getHttp());
     }
 
     @Override
     public void download(Artifact artifact, Resource resource, File dest) throws IOException {
-        this.artifact = artifact;
         if (dest.exists()) {
             dest.delete();
         }
@@ -40,14 +39,7 @@ public class WharfResourceDownloader implements ResourceDownloader {
             resolver.getAndCheck(resource, part);
         }
         if (!part.renameTo(dest)) {
-            throw new IOException(
-                    "impossible to move part file to definitive one: "
-                            + part + " -> " + dest);
+            throw new IOException("impossible to move part file to definitive one: " + part + " -> " + dest);
         }
-
-    }
-
-    public Artifact getArtifact() {
-        return artifact;
     }
 }

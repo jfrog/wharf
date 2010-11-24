@@ -47,6 +47,7 @@ import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
+import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -294,6 +295,12 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         }
         ArtifactOrigin origin = getSavedArtifactOrigin(artifact);
         return getArchiveFileInCache(artifact, origin);
+    }
+
+    public File getStorageFile(String checksum) {
+        checksum = WharfUtils.getCleanChecksum(checksum);
+        return new File(getBasedir() + "/filestore", checksum.substring(0, 2) + "/" + checksum.substring(2, 4) + "/" +
+                checksum.substring(4, 6) + "/" + checksum);
     }
 
     private ArtifactMetadata findArtifactMetadata(Artifact artifact, ArtifactOrigin origin) {
@@ -646,6 +653,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         return name;
     }
 
+    @Deprecated
     public File getRepositoryCacheRoot() {
         return getBasedir();
     }
@@ -742,6 +750,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                             ModuleRevisionMetadata metadata =
                                     getMetadataHandler().getModuleRevisionMetadata(artifact.getModuleRevisionId());
                             ArtifactMetadata artMd = getMetadataHandler().getArtifactMetadata(artifact);
+                            //TODO: [by tc] we should not re-parse the file to get the checksums
                             if ((artMd.md5 == null || artMd.md5.isEmpty())) {
                                 artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
                             }

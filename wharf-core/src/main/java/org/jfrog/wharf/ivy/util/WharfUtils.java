@@ -5,8 +5,11 @@ import org.apache.ivy.util.CopyProgressListener;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.Locale;
 
 /**
  * @author Tomer Cohen
@@ -60,4 +63,38 @@ public class WharfUtils {
         }
     }
 
+    public static String getCleanChecksum(File checksumFile) throws IOException {
+        String csFileContent = FileUtil.readEntirely(
+                new BufferedReader(new FileReader(checksumFile))).trim().toLowerCase(Locale.US);
+        return getCleanChecksum(csFileContent);
+    }
+
+    public static String getCleanChecksum(String checksum) {
+        String cleanChecksum;
+        if (checksum.indexOf(' ') > -1
+                && (checksum.startsWith("md") || checksum.startsWith("sha"))) {
+            int lastSpaceIndex = checksum.lastIndexOf(' ');
+            cleanChecksum = checksum.substring(lastSpaceIndex + 1);
+        } else {
+            int spaceIndex = checksum.indexOf(' ');
+            if (spaceIndex != -1) {
+                cleanChecksum = checksum.substring(0, spaceIndex);
+                // IVY-1155: support some strange formats like this one:
+                // http://repo2.maven.org/maven2/org/apache/pdfbox/fontbox/0.8.0-incubator/fontbox-0.8.0-incubator.jar.md5
+                if (cleanChecksum.endsWith(":")) {
+                    StringBuffer result = new StringBuffer();
+                    char[] chars = checksum.substring(spaceIndex + 1).toCharArray();
+                    for (char aChar : chars) {
+                        if (!Character.isWhitespace(aChar)) {
+                            result.append(aChar);
+                        }
+                    }
+                    cleanChecksum = result.toString();
+                }
+            } else {
+                cleanChecksum = checksum;
+            }
+        }
+        return cleanChecksum;
+    }
 }
