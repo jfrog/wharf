@@ -24,7 +24,6 @@ import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
-import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
@@ -39,12 +38,6 @@ import java.util.Locale;
  * @author Tomer Cohen
  */
 public class IvyWharfResolver extends IBiblioResolver {
-    protected static final String SHA1_ALGORITHM = "sha1";
-    protected static final String MD5_ALGORITHM = "md5";
-
-    protected static final String getChecksumAlgoritm() {
-        return SHA1_ALGORITHM;
-    }
 
     private final WharfResourceDownloader downloader = new WharfResourceDownloader(this);
     private final ArtifactResourceResolver artifactResourceResolver
@@ -58,7 +51,7 @@ public class IvyWharfResolver extends IBiblioResolver {
     protected CacheTimeoutStrategy snapshotTimeout = DAILY;
 
     public IvyWharfResolver() {
-        setChecksums(MD5_ALGORITHM + ", " + SHA1_ALGORITHM);
+        setChecksums(WharfUtils.MD5_ALGORITHM + ", " + WharfUtils.SHA1_ALGORITHM);
     }
 
 
@@ -206,11 +199,11 @@ public class IvyWharfResolver extends IBiblioResolver {
     public long getAndCheck(Resource resource, File dest) throws IOException {
         // First get the checksum for this resource
         // TODO: [by fsi] The checksum value should be part of the resource object already (populated during the HEAD request)
-        Resource csRes = resource.clone(resource.getName() + "." + getChecksumAlgoritm());
+        Resource csRes = resource.clone(resource.getName() + "." + WharfUtils.getChecksumAlgoritm());
         String checksumValue;
         // TODO: [by fsi] Doing a stupid HEAD request on the XX.sha1 file! Waste of time...
         if (csRes.exists()) {
-            File tempChecksum = File.createTempFile("temp", "." + getChecksumAlgoritm());
+            File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgoritm());
             get(csRes, tempChecksum);
             try {
                 checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
@@ -220,7 +213,8 @@ public class IvyWharfResolver extends IBiblioResolver {
         } else {
             // The Wharf system enforce the presence of checksums on the remote repo
             throw new IOException(
-                    "invalid " + getChecksumAlgoritm() + " checksum file " + csRes.getName() + " not found!");
+                    "invalid " + WharfUtils.getChecksumAlgoritm() + " checksum file " + csRes.getName() +
+                            " not found!");
         }
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         File storageFile = cacheManager.getStorageFile(checksumValue);
@@ -231,11 +225,13 @@ public class IvyWharfResolver extends IBiblioResolver {
             }
             get(resource, storageFile);
             String downloadChecksum =
-                    ChecksumHelper.computeAsString(storageFile, getChecksumAlgoritm()).trim().toLowerCase(Locale.US);
+                    ChecksumHelper.computeAsString(storageFile, WharfUtils.getChecksumAlgoritm()).trim()
+                            .toLowerCase(Locale.US);
             if (!checksumValue.equals(downloadChecksum)) {
                 FileUtil.forceDelete(storageFile);
-                throw new IOException("invalid " + getChecksumAlgoritm() + ": expected=" + checksumValue + " computed="
-                        + downloadChecksum);
+                throw new IOException(
+                        "invalid " + WharfUtils.getChecksumAlgoritm() + ": expected=" + checksumValue + " computed="
+                                + downloadChecksum);
             }
         }
         // If we get here, then the file was found in cache with the good checksum! just need to copy it
@@ -244,24 +240,6 @@ public class IvyWharfResolver extends IBiblioResolver {
         return dest.length();
     }
 
-
-    private int getResolverIdByMd5(ModuleRevisionMetadata metadata, String md5) {
-        for (ArtifactMetadata artMd : metadata.artifactMetadata) {
-            if (md5.equals(artMd.md5)) {
-                return artMd.artResolverId;
-            }
-        }
-        return 0;
-    }
-
-    private int getResolverIdBySha1(ModuleRevisionMetadata metadata, String sha1) {
-        for (ArtifactMetadata artMd : metadata.artifactMetadata) {
-            if (sha1.equals(artMd.sha1)) {
-                return artMd.artResolverId;
-            }
-        }
-        return 0;
-    }
 
     private void updateCachePropertiesToCurrentTime(ModuleRevisionMetadata cacheProperties) {
         cacheProperties.latestResolvedTime = String.valueOf(System.currentTimeMillis());

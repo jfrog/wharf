@@ -1,10 +1,10 @@
 package org.jfrog.wharf.ivy.model;
 
-import org.apache.ivy.plugins.repository.url.URLRepository;
+import org.apache.ivy.plugins.resolver.AbstractPatternsBasedResolver;
 import org.apache.ivy.plugins.resolver.AbstractResolver;
+import org.apache.ivy.plugins.resolver.BasicResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
-import org.apache.ivy.plugins.resolver.FileSystemResolver;
-import org.apache.ivy.plugins.resolver.URLResolver;
+import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -14,11 +14,17 @@ import java.util.Map;
  */
 public class WharfResolverMetadata {
 
+    public String id;
+
     public String name;
 
     public String type;
 
-    public String url;
+    public boolean m2compatible;
+
+    public String ivyPattern;
+
+    public String artifactPattern;
 
     public String user;
 
@@ -33,11 +39,6 @@ public class WharfResolverMetadata {
     public WharfResolverMetadata() {
     }
 
-    public WharfResolverMetadata(String name, String type) {
-        this.name = name;
-        this.type = type;
-    }
-
     public WharfResolverMetadata(DependencyResolver resolver) {
         this.name = resolver.getName();
         if (resolver instanceof AbstractResolver) {
@@ -45,20 +46,34 @@ public class WharfResolverMetadata {
         } else {
             this.type = resolver.getClass().getName();
         }
-        if (resolver instanceof URLResolver) {
-            URLRepository repository = (URLRepository) ((URLResolver) resolver).getRepository();
-            this.url = repository.getName();
-        } else if (resolver instanceof FileSystemResolver) {
-            FileSystemResolver fileSystemResolver = (FileSystemResolver) resolver;
-            List patterns = fileSystemResolver.getArtifactPatterns();
-            if (!patterns.isEmpty()) {
-                this.url = patterns.get(0).toString();
+        if (resolver instanceof BasicResolver) {
+            this.checksumAlgorithms = ((BasicResolver) resolver).getChecksumAlgorithms();
+        }
+        if (resolver instanceof AbstractPatternsBasedResolver) {
+            AbstractPatternsBasedResolver patternsBasedResolver = (AbstractPatternsBasedResolver) resolver;
+            this.m2compatible = patternsBasedResolver.isM2compatible();
+            List<String> patterns = patternsBasedResolver.getIvyPatterns();
+            if (patterns.isEmpty()) {
+                this.ivyPattern = "";
+            } else {
+                this.ivyPattern = patterns.get(0);
+            }
+            patterns = patternsBasedResolver.getArtifactPatterns();
+            if (patterns.isEmpty()) {
+                this.artifactPattern = "";
+            } else {
+                this.artifactPattern = patterns.get(0);
             }
         }
+        // TODO: Find the user
     }
 
-    public int getId() {
-        return hashCode();
+    public String getId() {
+        if (id == null || id.isEmpty()) {
+            String idString = type + name + ivyPattern + artifactPattern + params + user;
+            id = WharfUtils.computeUUID(idString);
+        }
+        return id;
     }
 
     @Override
@@ -71,33 +86,11 @@ public class WharfResolverMetadata {
         }
 
         WharfResolverMetadata that = (WharfResolverMetadata) o;
-
-        if (!name.equals(that.name)) {
-            return false;
-        }
-        if (params != null ? !params.equals(that.params) : that.params != null) {
-            return false;
-        }
-        if (!type.equals(that.type)) {
-            return false;
-        }
-        if (url != null ? !url.equals(that.url) : that.url != null) {
-            return false;
-        }
-        if (user != null ? !user.equals(that.user) : that.user != null) {
-            return false;
-        }
-
-        return true;
+        return getId().equals(that.getId());
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + type.hashCode();
-        result = 31 * result + (url != null ? url.hashCode() : 0);
-        result = 31 * result + (user != null ? user.hashCode() : 0);
-        result = 31 * result + (params != null ? params.hashCode() : 0);
-        return result;
+        return getId().hashCode();
     }
 }

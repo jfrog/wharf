@@ -63,12 +63,15 @@ public class WharfCacheManagerTest {
         settings = ivy.getSettings();
         f.delete(); // we want to use the file as a directory, so we delete the file itself
         cacheManager = new WharfCacheManager();
-        cacheManager.setSettings(settings);
         cacheManager.setBasedir(f);
+        cacheManager.setSettings(settings);
+        settings.setDefaultRepositoryCacheManager(cacheManager);
+        settings.setDefaultCache(f);
         artifact = createArtifact("org", "module", "rev", "name", "type", "ext");
         origin = new ArtifactOrigin(artifact, true, "/some/where");
         artifact =
-                ArtifactMetadata.fillResolverId(artifact, cacheManager.getResolverHandler().getLocalResolver().getId());
+                ArtifactMetadata.fillResolverId(artifact,
+                        cacheManager.getResolverHandler().getResolver(settings.getDefaultResolver()).getId());
         cacheManager.saveArtifactOrigin(artifact, origin);
     }
 

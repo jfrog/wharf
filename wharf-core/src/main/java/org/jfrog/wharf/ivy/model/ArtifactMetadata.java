@@ -14,8 +14,8 @@ import java.util.Map;
  */
 public class ArtifactMetadata {
     public static final String WHARF_RESOLVER_ID = "wharf:resolverId";
-    public int resolverId;
-    public int artResolverId;
+    public String resolverId;
+    public String artResolverId;
     public String id;
     public String location;
     public boolean local;
@@ -25,30 +25,27 @@ public class ArtifactMetadata {
     public ArtifactMetadata() {
     }
 
-    public static int extractResolverId(Artifact artifact, ArtifactOrigin origin) {
-        int originResolverId = extractResolverId(artifact);
-        if (originResolverId == 0) {
+    public static String extractResolverId(Artifact artifact, ArtifactOrigin origin) {
+        String artifactResolverId = extractResolverId(artifact);
+        if (artifactResolverId == null || artifactResolverId.isEmpty()) {
+            // Get the resolver id from the origin
             return extractResolverId(origin.getArtifact());
         }
-        return originResolverId;
+        return artifactResolverId;
     }
 
-    public static int extractResolverId(Artifact artifact) {
-        String resolverId = (String) artifact.getQualifiedExtraAttributes().get(WHARF_RESOLVER_ID);
-        if (resolverId == null || resolverId.length() == 0) {
-            return 0;
-        }
-        return Integer.parseInt(resolverId);
+    public static String extractResolverId(Artifact artifact) {
+        return (String) artifact.getQualifiedExtraAttributes().get(WHARF_RESOLVER_ID);
     }
 
-    public static Artifact fillResolverId(Artifact artifact, int resolverId) {
+    public static Artifact fillResolverId(Artifact artifact, String resolverId) {
         Map<String, String> extraAttributes = new HashMap<String, String>(artifact.getQualifiedExtraAttributes());
         extraAttributes.put(ArtifactMetadata.WHARF_RESOLVER_ID, String.valueOf(resolverId));
         return new DefaultArtifact(artifact.getModuleRevisionId(), artifact.getPublicationDate(),
                 artifact.getName(), artifact.getType(), artifact.getExt(), artifact.getUrl(), extraAttributes);
     }
 
-    private ArtifactMetadata(Artifact artifact, int resolverId) {
+    private ArtifactMetadata(Artifact artifact, String resolverId) {
         this.id = getArtId(artifact);
         this.resolverId = resolverId;
         this.artResolverId = resolverId;
@@ -77,10 +74,10 @@ public class ArtifactMetadata {
         if (id == null) {
             throw new NullPointerException("ArtifactMetadata ID cannot be null!");
         }
-        if (artResolverId == 0) {
+        if (artResolverId == null || artResolverId.isEmpty()) {
             artResolverId = resolverId;
         }
-        if (resolverId == 0) {
+        if (resolverId == null || resolverId.isEmpty()) {
             throw new IllegalStateException("Resolver id cannot be 0");
         }
     }
@@ -108,12 +105,12 @@ public class ArtifactMetadata {
             return false;
         }
         ArtifactMetadata metadata = (ArtifactMetadata) o;
-        return resolverId == metadata.resolverId && id.equals(metadata.id);
+        return resolverId.equals(metadata.resolverId) && id.equals(metadata.id);
     }
 
     @Override
     public int hashCode() {
-        int result = resolverId;
+        int result = resolverId.hashCode();
         result = 31 * result + id.hashCode();
         return result;
     }

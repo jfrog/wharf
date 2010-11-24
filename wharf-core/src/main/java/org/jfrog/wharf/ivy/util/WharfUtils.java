@@ -1,5 +1,6 @@
 package org.jfrog.wharf.ivy.util;
 
+import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.CopyProgressEvent;
 import org.apache.ivy.util.CopyProgressListener;
 import org.apache.ivy.util.FileUtil;
@@ -9,12 +10,22 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 
 /**
  * @author Tomer Cohen
  */
 public class WharfUtils {
+
+    public static final String SHA1_ALGORITHM = "sha1";
+    public static final String MD5_ALGORITHM = "md5";
+
+    public static final String getChecksumAlgoritm() {
+        return SHA1_ALGORITHM;
+    }
 
     private enum OperatingSystem {
         WINDOWS {
@@ -96,5 +107,26 @@ public class WharfUtils {
             }
         }
         return cleanChecksum;
+    }
+
+    public static String computeUUID(String content) {
+        String algorithm = MD5_ALGORITHM;
+        if (!ChecksumHelper.isKnownAlgorithm(algorithm)) {
+            throw new IllegalArgumentException("unknown algorithm " + algorithm);
+        }
+        try {
+            MessageDigest md = MessageDigest.getInstance(algorithm);
+            md.reset();
+            byte[] bytes = content.trim().toLowerCase(Locale.US).getBytes("UTF-8");
+            md.update(bytes, 0, bytes.length);
+            byte[] digest = md.digest();
+            return ChecksumHelper.byteArrayToHexString(digest);
+        } catch (NoSuchAlgorithmException e) {
+            // Impossible
+            throw new IllegalArgumentException("unknown algorithm " + algorithm, e);
+        } catch (UnsupportedEncodingException e) {
+            // Impossible except with IBM :)
+            throw new IllegalArgumentException("unknown charset UTF-8", e);
+        }
     }
 }

@@ -81,14 +81,13 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     @Before
     public void setUp() throws Exception {
         settings = new IvySettings();
-        settings.getDefaultRepositoryCacheManager();
+        settings.setDefaultRepositoryCacheManager(new WharfCacheManager());
         engine = new ResolveEngine(settings, new EventManager(), new SortEngine(settings));
         cache = new File("build/test/cache");
         FileUtil.forceDelete(cache);
         data = new ResolveData(engine, new ResolveOptions());
         cache.mkdirs();
         settings.setDefaultCache(cache);
-        settings.setDefaultRepositoryCacheManager(new WharfCacheManager());
         cacheManager = (WharfCacheManager) settings.getDefaultRepositoryCacheManager();
         cacheManager.setSettings(settings);
         setupLastModified();
