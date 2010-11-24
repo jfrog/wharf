@@ -171,8 +171,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
-        resolver.addIvyPattern(
-                sourceDir + "/test/repositories/checksums/[module]/[artifact]-[revision].[ext]");
+        resolver.addIvyPattern(sourceDir + "/test/repositories/checksums/[module]/[artifact]-[revision].[ext]");
         resolver.addArtifactPattern(sourceDir + "/test/repositories/checksums/[module]/[artifact]-[revision].[ext]");
 
         resolver.setChecksums("sha1, md5");

@@ -40,8 +40,7 @@ import java.util.Locale;
 public class IvyWharfResolver extends IBiblioResolver {
 
     private final WharfResourceDownloader downloader = new WharfResourceDownloader(this);
-    private final ArtifactResourceResolver artifactResourceResolver
-            = new ArtifactResourceResolver() {
+    private final ArtifactResourceResolver artifactResourceResolver = new ArtifactResourceResolver() {
         @Override
         public ResolvedResource resolve(Artifact artifact) {
             artifact = fromSystem(artifact);

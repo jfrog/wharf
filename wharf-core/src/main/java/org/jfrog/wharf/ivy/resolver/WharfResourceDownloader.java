@@ -4,7 +4,6 @@ import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.repository.url.URLRepository;
-import org.apache.ivy.util.url.URLHandlerRegistry;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +19,6 @@ public class WharfResourceDownloader implements ResourceDownloader {
 
     public WharfResourceDownloader(IvyWharfResolver resolver) {
         this.resolver = resolver;
-        URLHandlerRegistry.setDefault(URLHandlerRegistry.getHttp());
     }
 
     @Override
