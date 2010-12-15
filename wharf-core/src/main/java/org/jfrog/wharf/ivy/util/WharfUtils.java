@@ -28,10 +28,16 @@ public class WharfUtils {
     }
 
     private enum OperatingSystem {
-        WINDOWS {
+        OLD_WINDOWS {
             @Override
             void copyCacheFile(File src, File dest) throws IOException {
                 FileUtil.copy(src, dest, new WharfCopyListener(), true);
+            }
+        },
+        NEW_WINDOWS {
+            @Override
+            void copyCacheFile(File src, File dest) throws IOException {
+                WindowsUtils.windowsSymlink(src, dest, new WharfCopyListener(), true);
             }
         },
         OS_X, OTHER;
@@ -46,7 +52,11 @@ public class WharfUtils {
     static {
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("windows")) {
-            OS = OperatingSystem.WINDOWS;
+            if ((!osName.contains("vista") || !osName.contains("7"))) {
+                OS = OperatingSystem.OLD_WINDOWS;
+            } else {
+                OS = OperatingSystem.NEW_WINDOWS;
+            }
         } else if (osName.contains("mac os x")) {
             OS = OperatingSystem.OS_X;
         } else {
