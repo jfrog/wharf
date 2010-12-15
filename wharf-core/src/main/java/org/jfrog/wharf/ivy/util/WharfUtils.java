@@ -23,7 +23,7 @@ public class WharfUtils {
     public static final String SHA1_ALGORITHM = "sha1";
     public static final String MD5_ALGORITHM = "md5";
 
-    public static final String getChecksumAlgoritm() {
+    public static String getChecksumAlgorithm() {
         return SHA1_ALGORITHM;
     }
 

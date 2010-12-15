@@ -198,11 +198,11 @@ public class IvyWharfResolver extends IBiblioResolver {
     public long getAndCheck(Resource resource, File dest) throws IOException {
         // First get the checksum for this resource
         // TODO: [by fsi] The checksum value should be part of the resource object already (populated during the HEAD request)
-        Resource csRes = resource.clone(resource.getName() + "." + WharfUtils.getChecksumAlgoritm());
+        Resource csRes = resource.clone(resource.getName() + "." + WharfUtils.getChecksumAlgorithm());
         String checksumValue;
         // TODO: [by fsi] Doing a stupid HEAD request on the XX.sha1 file! Waste of time...
         if (csRes.exists()) {
-            File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgoritm());
+            File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgorithm());
             get(csRes, tempChecksum);
             try {
                 checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
@@ -212,7 +212,7 @@ public class IvyWharfResolver extends IBiblioResolver {
         } else {
             // The Wharf system enforce the presence of checksums on the remote repo
             throw new IOException(
-                    "invalid " + WharfUtils.getChecksumAlgoritm() + " checksum file " + csRes.getName() +
+                    "invalid " + WharfUtils.getChecksumAlgorithm() + " checksum file " + csRes.getName() +
                             " not found!");
         }
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
@@ -224,12 +224,12 @@ public class IvyWharfResolver extends IBiblioResolver {
             }
             get(resource, storageFile);
             String downloadChecksum =
-                    ChecksumHelper.computeAsString(storageFile, WharfUtils.getChecksumAlgoritm()).trim()
+                    ChecksumHelper.computeAsString(storageFile, WharfUtils.getChecksumAlgorithm()).trim()
                             .toLowerCase(Locale.US);
             if (!checksumValue.equals(downloadChecksum)) {
                 FileUtil.forceDelete(storageFile);
                 throw new IOException(
-                        "invalid " + WharfUtils.getChecksumAlgoritm() + ": expected=" + checksumValue + " computed="
+                        "invalid " + WharfUtils.getChecksumAlgorithm() + ": expected=" + checksumValue + " computed="
                                 + downloadChecksum);
             }
         }
