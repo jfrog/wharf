@@ -15,13 +15,10 @@
  */
 package org.jfrog.wharf.resolver;
 
-import org.jfrog.wharf.ivy.resolver.IvyWharfResolver;
-
 /**
- * @author Hans Dockter
  * @author Tomer Cohen
  */
-public class GradleWharfResolver extends IvyWharfResolver {
+public class WharfResolverConfiguration {
 
 }
 

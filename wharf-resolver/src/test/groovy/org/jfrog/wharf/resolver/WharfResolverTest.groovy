@@ -22,7 +22,7 @@ import spock.lang.Specification
  * @author Hans Dockter
  */
 class WharfResolverTest extends Specification {
-  GradleWharfResolver wharfResolver = new GradleWharfResolver()
+  WharfResolverConfiguration wharfResolver = new WharfResolverConfiguration()
 
   def testInit() {
     expect:
@@ -48,7 +48,7 @@ class WharfResolverTest extends Specification {
   }
 
   def timeoutInterval() {
-    def interval = new GradleWharfResolver.Interval(1000)
+    def interval = new WharfResolverConfiguration.Interval(1000)
 
     expect:
     interval.isCacheTimedOut(System.currentTimeMillis() - 5000)
