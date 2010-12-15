@@ -72,6 +72,8 @@ public class WharfCacheManagerArtifactLockTest {
         settings2.setDefaultCache(cache);
         IvySettings settings3 = new IvySettings();
         settings3.setDefaultCache(cache);
+        IvySettings settings4 = new IvySettings();
+        settings4.setDefaultCache(cache);
 
         // run 3 concurrent resolves, one taking 100ms to download files, one 20ms and one 5ms
         // the first one do 10 resolves, the second one 20 and the third 50
@@ -82,18 +84,21 @@ public class WharfCacheManagerArtifactLockTest {
                 settings2, createSlowResolver(settings2, 20), "org6#mod6.4;3", 20);
         ResolveThread t3 = asyncResolve(
                 settings3, createSlowResolver(settings3, 5), "org6#mod6.4;3", 50);
-        //TODO: [by tc] add another thread that gets another artifact from cache, no locking.
+        ResolveThread t4 = asyncResolve(
+                settings3, createSlowResolver(settings4, 5), "org6#mod6.2;2.0", 50);
         t1.join(100000);
         t2.join(20000);
         t3.join(20000);
+        t4.join(20000);
         assertEquals(10, t1.getCount());
         assertFound("org6#mod6.4;3", t1.getFinalResult());
         assertEquals(20, t2.getCount());
         assertFound("org6#mod6.4;3", t2.getFinalResult());
         assertEquals(50, t3.getCount());
         assertFound("org6#mod6.4;3", t3.getFinalResult());
+        assertEquals(50, t4.getCount());
+        assertFound("org6#mod6.2;2.0", t4.getFinalResult());
     }
-
 
     private RepositoryCacheManager newCacheManager(IvySettings settings) {
         WharfCacheManager cacheManager = new WharfCacheManager("cache", settings, cache);
