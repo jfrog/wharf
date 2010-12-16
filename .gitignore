@@ -1,0 +1,18 @@
+
+# root wharf
+/*.ipr
+/*.iws
+/*.iml
+/.gradle
+/build
+/buildSrc/.gradle
+/buildSrc/build
+
+# wharf-core
+/wharf-core/build
+/wharf-core/*.iml
+
+# wharf-core
+/wharf-resolver/build
+/wharf-resolver/*.iml
+
