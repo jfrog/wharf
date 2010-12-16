@@ -1,3 +1,21 @@
+/*
+ *
+ *  Copyright (C) 2010 JFrog Ltd.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ * /
+ */
+
 package org.jfrog.wharf.ivy.marshall.kryo;
 
 
@@ -99,7 +117,7 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
         private void releaseLockFile() {
             if (lockAcquired) {
                 if (!lockFile.exists()) {
-                    Message.error("Acquired lock file " + lockFile.getAbsolutePath()+" but not present on release!");
+                    Message.error("Acquired lock file " + lockFile.getAbsolutePath() + " but not present on release!");
                 }
                 if (!lockFile.delete()) {
                     Message.error("Could not release lock file " + lockFile.getAbsolutePath());

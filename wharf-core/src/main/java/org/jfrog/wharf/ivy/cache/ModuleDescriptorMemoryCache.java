@@ -1,19 +1,19 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *  Copyright (C) 2010 JFrog Ltd.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
+ * /
  */
 package org.jfrog.wharf.ivy.cache;
 
@@ -49,7 +49,7 @@ class ModuleDescriptorMemoryCache {
     }
 
     public ModuleDescriptor get(File ivyFile, ParserSettings ivySettings, boolean validated,
-            ModuleDescriptorProvider mdProvider) throws ParseException, IOException {
+                                ModuleDescriptorProvider mdProvider) throws ParseException, IOException {
 
         ModuleDescriptor descriptor = getFromCache(ivyFile, ivySettings, validated);
         if (descriptor == null) {
@@ -62,7 +62,7 @@ class ModuleDescriptorMemoryCache {
      * Get the module descriptor from the mdProvider and store it into the cache.
      */
     public ModuleDescriptor getStale(File ivyFile, ParserSettings ivySettings, boolean validated,
-            ModuleDescriptorProvider mdProvider) throws ParseException, IOException {
+                                     ModuleDescriptorProvider mdProvider) throws ParseException, IOException {
         ParserSettingsMonitor settingsMonitor = new ParserSettingsMonitor(ivySettings);
         ModuleDescriptor descriptor = mdProvider.provideModule(
                 settingsMonitor.getMonitoredSettings(), ivyFile, validated);
@@ -97,7 +97,7 @@ class ModuleDescriptorMemoryCache {
 
 
     void putInCache(File url, ParserSettingsMonitor ivySettingsMonitor, boolean validated,
-            ModuleDescriptor descriptor) {
+                    ModuleDescriptor descriptor) {
         if (maxSize <= 0) {
             //cache is disabled
             return;
@@ -118,7 +118,7 @@ class ModuleDescriptorMemoryCache {
         private final ParserSettingsMonitor parserSettingsMonitor;
 
         CacheEntry(ModuleDescriptor md, boolean validated,
-                ParserSettingsMonitor parserSettingsMonitor) {
+                   ParserSettingsMonitor parserSettingsMonitor) {
             this.md = md;
             this.validated = validated;
             this.parserSettingsMonitor = parserSettingsMonitor;

@@ -1,13 +1,26 @@
+/*
+ *
+ *  Copyright (C) 2010 JFrog Ltd.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ * /
+ */
+
 package org.jfrog.wharf.ivy.cache;
 
 
 import org.apache.ivy.core.IvyPatternHelper;
-import org.apache.ivy.core.cache.ArtifactOrigin;
-import org.apache.ivy.core.cache.CacheDownloadOptions;
-import org.apache.ivy.core.cache.CacheMetadataOptions;
-import org.apache.ivy.core.cache.DownloadListener;
-import org.apache.ivy.core.cache.ModuleDescriptorWriter;
-import org.apache.ivy.core.cache.RepositoryCacheManager;
+import org.apache.ivy.core.cache.*;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
@@ -20,11 +33,7 @@ import org.apache.ivy.core.report.MetadataArtifactDownloadReport;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
-import org.apache.ivy.plugins.matcher.ExactPatternMatcher;
-import org.apache.ivy.plugins.matcher.MapMatcher;
-import org.apache.ivy.plugins.matcher.Matcher;
-import org.apache.ivy.plugins.matcher.NoMatcher;
-import org.apache.ivy.plugins.matcher.PatternMatcher;
+import org.apache.ivy.plugins.matcher.*;
 import org.apache.ivy.plugins.namespace.NameSpaceHelper;
 import org.apache.ivy.plugins.parser.ModuleDescriptorParser;
 import org.apache.ivy.plugins.parser.ModuleDescriptorParserRegistry;
@@ -460,7 +469,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     @Override
     public ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ModuleRevisionId requestedRevisionId,
-            CacheMetadataOptions options, String expectedResolver) {
+                                                    CacheMetadataOptions options, String expectedResolver) {
         ModuleRevisionId mrid = requestedRevisionId;
         if (isCheckmodified(dd, requestedRevisionId, options)) {
             Message.verbose("don't use cache for " + mrid + ": checkModified=true");
@@ -580,13 +589,13 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
         @Override
         public ModuleDescriptor provideModule(ParserSettings ivySettings,
-                File descriptorURL, boolean validate) throws ParseException, IOException {
+                                              File descriptorURL, boolean validate) throws ParseException, IOException {
             return mdParser.parseDescriptor(settings, descriptorURL.toURI().toURL(), validate);
         }
     }
 
     private ModuleDescriptor getMdFromCache(XmlModuleDescriptorParser mdParser,
-            CacheMetadataOptions options, File ivyFile)
+                                            CacheMetadataOptions options, File ivyFile)
             throws ParseException, IOException {
         ModuleDescriptorMemoryCache cache = getMemoryCache();
         ModuleDescriptorProvider mdProvider = new MyModuleDescriptorProvider(mdParser, settings);
@@ -594,7 +603,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     }
 
     private ModuleDescriptor getStaledMd(ModuleDescriptorParser mdParser,
-            CacheMetadataOptions options, File ivyFile, ParserSettings parserSettings)
+                                         CacheMetadataOptions options, File ivyFile, ParserSettings parserSettings)
             throws ParseException, IOException {
         ModuleDescriptorMemoryCache cache = getMemoryCache();
         ModuleDescriptorProvider mdProvider = new MyModuleDescriptorProvider(mdParser, parserSettings);
@@ -675,7 +684,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     @Override
     public ArtifactDownloadReport download(Artifact artifact, ArtifactResourceResolver resourceResolver,
-            ResourceDownloader resourceDownloader, CacheDownloadOptions options) {
+                                           ResourceDownloader resourceDownloader, CacheDownloadOptions options) {
         final ArtifactDownloadReport adr = new ArtifactDownloadReport(artifact);
         boolean useOrigin = isUseOrigin();
 
@@ -801,7 +810,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     @Override
     public void originalToCachedModuleDescriptor(DependencyResolver resolver, ResolvedResource orginalMetadataRef,
-            Artifact requestedMetadataArtifact, ResolvedModuleRevision rmr, ModuleDescriptorWriter writer) {
+                                                 Artifact requestedMetadataArtifact, ResolvedModuleRevision rmr, ModuleDescriptorWriter writer) {
         ModuleDescriptor md = rmr.getDescriptor();
         WharfResolverMetadata wharfResolverMetadata = getResolverHandler().getResolver(resolver);
         Artifact originalMetadataArtifact = getOriginalMetadataArtifact(requestedMetadataArtifact);
@@ -838,8 +847,8 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     @Override
     public ResolvedModuleRevision cacheModuleDescriptor(DependencyResolver resolver, final ResolvedResource mdRef,
-            DependencyDescriptor dd, Artifact moduleArtifact, ResourceDownloader downloader,
-            CacheMetadataOptions options) throws ParseException {
+                                                        DependencyDescriptor dd, Artifact moduleArtifact, ResourceDownloader downloader,
+                                                        CacheMetadataOptions options) throws ParseException {
         Date cachedPublicationDate = null;
         ArtifactDownloadReport report;
         ModuleRevisionId mrid = moduleArtifact.getModuleRevisionId();
@@ -1057,7 +1066,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     }
 
     private boolean isCheckmodified(DependencyDescriptor dd, ModuleRevisionId requestedRevisionId,
-            CacheMetadataOptions options) {
+                                    CacheMetadataOptions options) {
         if (options.isCheckmodified() != null) {
             return options.isCheckmodified();
         }

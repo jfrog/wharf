@@ -1,19 +1,19 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *  Copyright (C) 2010 JFrog Ltd.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
+ * /
  */
 package org.jfrog.wharf.util;
 
@@ -21,11 +21,7 @@ import junit.framework.Assert;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.DefaultRepositoryCacheManager;
 import org.apache.ivy.core.event.EventManager;
-import org.apache.ivy.core.module.descriptor.Artifact;
-import org.apache.ivy.core.module.descriptor.DefaultArtifact;
-import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
-import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
-import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
+import org.apache.ivy.core.module.descriptor.*;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolveEngine;
@@ -39,25 +35,21 @@ import org.apache.ivy.util.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TestHelper {
 
     public static DefaultArtifact newArtifact(String organisation, String module, String revision, String artifact,
-            String type, String ext) {
+                                              String type, String ext) {
         return new DefaultArtifact(ModuleRevisionId.newInstance(
                 organisation, module, revision), new Date(), artifact, type, ext);
     }
 
 
     public static File getArchiveFileInCache(Ivy ivy, String mrid,
-            String artifactName, String type, String ext) {
+                                             String artifactName, String type, String ext) {
         DefaultArtifact artifact = new DefaultArtifact(ModuleRevisionId.parse(mrid),
                 new Date(), artifactName, type, ext);
         return getRepositoryCacheManager(ivy, artifact.getModuleRevisionId())
@@ -65,7 +57,7 @@ public class TestHelper {
     }
 
     public static File getArchiveFileInCache(Ivy ivy, String organisation, String module,
-            String revision, String artifactName, String type, String ext) {
+                                             String revision, String artifactName, String type, String ext) {
         DefaultArtifact artifact = newArtifact(organisation, module, revision,
                 artifactName, type, ext);
         return getRepositoryCacheManager(ivy, artifact.getModuleRevisionId())
@@ -90,7 +82,7 @@ public class TestHelper {
      * @param mrids         the3 mrids to test
      */
     public static void assertModuleRevisionIds(String expectedMrids,
-            Collection/* <ModuleRevisionId> */mrids) {
+                                               Collection/* <ModuleRevisionId> */mrids) {
         Collection<ModuleRevisionId> expected = parseMrids(expectedMrids);
         Assert.assertEquals(expected, mrids);
     }
