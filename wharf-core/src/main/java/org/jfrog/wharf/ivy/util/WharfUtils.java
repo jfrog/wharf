@@ -20,6 +20,7 @@ package org.jfrog.wharf.ivy.util;
 
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.BasicResolver;
+import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.*;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.resolver.WharfResolver;
@@ -55,6 +56,17 @@ public class WharfUtils {
         } catch (Exception e) {
             throw new RuntimeException("Could not hack Ivy :(", e);
         }
+    }
+
+    public static ResolvedResource convertToWharfResource(ResolvedResource resolvedResource) {
+        if (resolvedResource == null) {
+            return null;
+        }
+        Resource resource = resolvedResource.getResource();
+        if (resource == null) {
+            return resolvedResource;
+        }
+        return new ResolvedResource(new WharfUrlResource(resource), resolvedResource.getRevision());
     }
 
     private enum OperatingSystem {

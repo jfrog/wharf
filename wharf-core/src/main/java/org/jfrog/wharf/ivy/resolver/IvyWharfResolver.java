@@ -30,7 +30,6 @@ import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
-import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
@@ -66,24 +65,13 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
     @Override
     protected ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
-        return convertToWharfResource(artifactRef);
+        return WharfUtils.convertToWharfResource(artifactRef);
     }
 
     @Override
     public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
         ResolvedResource ivyFileRef = super.findIvyFileRef(dd, data);
-        return convertToWharfResource(ivyFileRef);
-    }
-
-    private ResolvedResource convertToWharfResource(ResolvedResource artifactRef) {
-        if (artifactRef == null) {
-            return null;
-        }
-        Resource resource = artifactRef.getResource();
-        if (resource == null) {
-            return artifactRef;
-        }
-        return new ResolvedResource(new WharfUrlResource(resource), artifactRef.getRevision());
+        return WharfUtils.convertToWharfResource(ivyFileRef);
     }
 
 
