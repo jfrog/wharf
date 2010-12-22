@@ -18,9 +18,15 @@
 
 package org.jfrog.wharf.ivy.util;
 
+import org.apache.ivy.plugins.repository.Resource;
+import org.apache.ivy.plugins.resolver.BasicResolver;
 import org.apache.ivy.util.*;
+import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.resolver.WharfResolver;
+import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
@@ -35,6 +41,20 @@ public class WharfUtils {
 
     public static String getChecksumAlgorithm() {
         return SHA1_ALGORITHM;
+    }
+
+    public static void hackIvyBasicResolver(WharfResolver wharfResolver) {
+        try {
+            // TODO: The following reflection can be removed once Ivy uses a getDownloader and getArtifactResourceResolver methods
+            Field downloaderField = BasicResolver.class.getDeclaredField("downloader");
+            downloaderField.setAccessible(true);
+            downloaderField.set(wharfResolver, wharfResolver.getDownloader());
+            Field artifactResourceResolverField = BasicResolver.class.getDeclaredField("artifactResourceResolver");
+            artifactResourceResolverField.setAccessible(true);
+            artifactResourceResolverField.set(wharfResolver, wharfResolver.getArtifactResourceResolver());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not hack Ivy :(", e);
+        }
     }
 
     private enum OperatingSystem {
@@ -101,6 +121,9 @@ public class WharfUtils {
     }
 
     public static String getCleanChecksum(String checksum) {
+        if (checksum == null) {
+            return null;
+        }
         String cleanChecksum;
         if (checksum.indexOf(' ') > -1
                 && (checksum.startsWith("md") || checksum.startsWith("sha"))) {
@@ -148,5 +171,60 @@ public class WharfUtils {
             // Impossible except with IBM :)
             throw new IllegalArgumentException("unknown charset UTF-8", e);
         }
+    }
+
+    public static long getAndCheck(WharfResolver wharfResolver, Resource resource, File dest) throws IOException {
+        if (!(resource instanceof WharfUrlResource)) {
+            throw new IllegalArgumentException("The Wharf Resolver manage only WharfUrlResource");
+        }
+        WharfUrlResource wharfResource = (WharfUrlResource) resource;
+        // First get the checksum for this resource
+        String checksumValue = wharfResource.getSha1();
+        if (checksumValue == null) {
+            // If no checksum found in HEAD request, download the actual .sha1 resource
+            // In non Artifactory server will do 2 queries HEAD + GET
+            Resource csRes = resource.clone(resource.getName() + "." + WharfUtils.getChecksumAlgorithm());
+            if (csRes.exists()) {
+                File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgorithm());
+                wharfResolver.get(csRes, tempChecksum);
+                try {
+                    checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
+                } finally {
+                    FileUtil.forceDelete(tempChecksum);
+                }
+            } else {
+                // The Wharf system enforce the presence of checksums on the remote repo
+                throw new IOException(
+                        "invalid " + WharfUtils.getChecksumAlgorithm() + " checksum file " + csRes.getName() +
+                                " not found!");
+            }
+        }
+        if (checksumValue == null) {
+            // The Wharf system enforce the presence of checksums on the remote repo
+            throw new IOException(
+                    "invalid " + WharfUtils.getChecksumAlgorithm() + " checksum not found for " + resource.getName());
+        }
+        WharfCacheManager cacheManager = (WharfCacheManager) wharfResolver.getRepositoryCacheManager();
+        File storageFile = cacheManager.getStorageFile(checksumValue);
+        if (!storageFile.exists()) {
+            // Not in storage cache
+            if (!storageFile.getParentFile().exists()) {
+                storageFile.getParentFile().mkdirs();
+            }
+            wharfResolver.get(resource, storageFile);
+            String downloadChecksum =
+                    ChecksumHelper.computeAsString(storageFile, WharfUtils.getChecksumAlgorithm()).trim()
+                            .toLowerCase(Locale.US);
+            if (!checksumValue.equals(downloadChecksum)) {
+                FileUtil.forceDelete(storageFile);
+                throw new IOException(
+                        "invalid " + WharfUtils.getChecksumAlgorithm() + ": expected=" + checksumValue + " computed="
+                                + downloadChecksum);
+            }
+        }
+        // If we get here, then the file was found in cache with the good checksum! just need to copy it
+        // to the destination.
+        WharfUtils.copyCacheFile(storageFile, dest);
+        return dest.length();
     }
 }

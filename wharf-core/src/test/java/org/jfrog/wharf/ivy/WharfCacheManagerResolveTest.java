@@ -17,7 +17,6 @@
  */
 package org.jfrog.wharf.ivy;
 
-import org.apache.ivy.core.event.EventManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
@@ -25,19 +24,13 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
 import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
-import org.apache.ivy.core.resolve.*;
-import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.core.sort.SortEngine;
+import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.latest.LatestRevisionStrategy;
 import org.apache.ivy.plugins.latest.LatestTimeStrategy;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.FileUtil;
-import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
-import org.jfrog.wharf.util.CacheCleaner;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -52,59 +45,8 @@ import static org.junit.Assert.*;
  *
  */
 public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest {
-    //CheckStyle:MagicNumberCheck OFF
-
-    private static final String FS = System.getProperty("file.separator");
-
-    private static final String REL_IVY_PATTERN = "test" + FS + "repositories" + FS + "1" + FS
-            + "[organisation]" + FS + "[module]" + FS + "ivys" + FS + "ivy-[revision].xml";
-    private static final String IVY_PATTERN =
-            new File(new File(".").getParentFile(), "src").getAbsolutePath() + FS + REL_IVY_PATTERN;
-
-    private IvySettings settings;
-
-    private ResolveEngine engine;
-
-    private ResolveData data;
-
-    private File cache;
-
-    private WharfCacheManager cacheManager;
 
     public WharfCacheManagerResolveTest() {
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        settings = new IvySettings();
-        settings.setDefaultRepositoryCacheManager(new WharfCacheManager());
-        engine = new ResolveEngine(settings, new EventManager(), new SortEngine(settings));
-        cache = new File("build/test/cache");
-        FileUtil.forceDelete(cache);
-        data = new ResolveData(engine, new ResolveOptions());
-        cache.mkdirs();
-        settings.setDefaultCache(cache);
-        cacheManager = (WharfCacheManager) settings.getDefaultRepositoryCacheManager();
-        cacheManager.setSettings(settings);
-        setupLastModified();
-    }
-
-    private void setupLastModified() {
-        // change important last modified dates cause svn doesn't keep them
-        long minute = 60 * 1000;
-        long time = new GregorianCalendar().getTimeInMillis() - (4 * minute);
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-1.0.xml").setLastModified(time);
-        time += minute;
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-1.0.1.xml").setLastModified(time);
-        time += minute;
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-1.1.xml").setLastModified(time);
-        time += minute;
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-2.0.xml").setLastModified(time);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        CacheCleaner.deleteDir(cache);
     }
 
     @Test
@@ -115,9 +57,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
-        resolver.addIvyPattern(IVY_PATTERN);
-        resolver.addArtifactPattern(new File(settings.getBaseDir().getParentFile(), "src") +
-                "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
+        resolver.addIvyPattern(getIvyPattern());
+        resolver.addArtifactPattern(repoTestRoot.getAbsolutePath() + "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid,
                 false), data);
@@ -154,10 +95,6 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals(DownloadStatus.NO, ar.getDownloadStatus());
     }
 
-    private DownloadOptions getDownloadOptions() {
-        return new DownloadOptions();
-    }
-
     @Test
     public void testChecksum() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
@@ -165,10 +102,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         resolver.setSettings(settings);
         settings.addResolver(resolver);
 
-        File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
-
-        resolver.addIvyPattern(sourceDir + "/test/repositories/checksums/[module]/[artifact]-[revision].[ext]");
-        resolver.addArtifactPattern(sourceDir + "/test/repositories/checksums/[module]/[artifact]-[revision].[ext]");
+        resolver.addIvyPattern(repoTestRoot + "/checksums/[module]/[artifact]-[revision].[ext]");
+        resolver.addArtifactPattern(repoTestRoot + "/checksums/[module]/[artifact]-[revision].[ext]");
 
         resolver.setChecksums("sha1, md5");
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("test", "allright", "1.0");
@@ -211,12 +146,10 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         resolver.setSettings(settings);
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
-        File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
-        resolver.addIvyPattern(sourceDir + FS + "test" + FS + "repositories" + FS + "checkmodified" + FS
-                + "ivy-[revision].xml");
-        File modify = new File("src/test/repositories/checkmodified/ivy-1.0.xml");
-        FileUtil.copy(new File("src/test/repositories/checkmodified/ivy-1.0-before.xml"), modify, null,
+        resolver.addIvyPattern(repoTestRoot + FS + "checkmodified" + FS + "ivy-[revision].xml");
+        File modify = new File(repoTestRoot, "checkmodified/ivy-1.0.xml");
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/ivy-1.0-before.xml"), modify, null,
                 true);
         Date pubdate = new GregorianCalendar(2004, 10, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
@@ -229,7 +162,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         assertEquals(pubdate, rmr.getPublicationDate());
 
         // updates ivy file in repository
-        FileUtil.copy(new File("src/test/repositories/checkmodified/ivy-1.0-after.xml"), modify, null, true);
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/ivy-1.0-after.xml"), modify, null, true);
         pubdate = new GregorianCalendar(2005, 4, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
 
@@ -257,18 +190,17 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         resolver.setSettings(settings);
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
-        File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
-        resolver.addIvyPattern(sourceDir + FS + "test" + FS + "repositories" + FS + "norevision" + FS
+        resolver.addIvyPattern(repoTestRoot + FS + "norevision" + FS
                 + "ivy-[module].xml");
-        resolver.addArtifactPattern(sourceDir + FS + "test" + FS + "repositories" + FS + "norevision" + FS
+        resolver.addArtifactPattern(repoTestRoot + FS + "norevision" + FS
                 + "[artifact].[ext]");
-        File modify = new File("src/test/repositories/norevision/ivy-mod1.1.xml");
-        File artifact = new File("src/test/repositories/norevision/mod1.1.jar");
+        File modify = new File(repoTestRoot, "norevision/ivy-mod1.1.xml");
+        File artifact = new File(repoTestRoot, "norevision/mod1.1.jar");
 
         // 'publish' 'before' version
-        FileUtil.copy(new File("src/test/repositories/norevision/ivy-mod1.1-before.xml"), modify, null,
+        FileUtil.copy(new File(repoTestRoot, "norevision/ivy-mod1.1-before.xml"), modify, null,
                 true);
-        FileUtil.copy(new File("src/test/repositories/norevision/mod1.1-before.jar"), artifact, null,
+        FileUtil.copy(new File(repoTestRoot, "norevision/mod1.1-before.jar"), artifact, null,
                 true);
         Date pubdate = new GregorianCalendar(2004, 10, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
@@ -291,9 +223,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         r.close();
 
         // updates ivy file and artifact in repository
-        FileUtil.copy(new File("src/test/repositories/norevision/ivy-mod1.1-after.xml"), modify, null,
+        FileUtil.copy(new File(repoTestRoot, "norevision/ivy-mod1.1-after.xml"), modify, null,
                 true);
-        FileUtil.copy(new File("src/test/repositories/norevision/mod1.1-after.jar"), artifact, null,
+        FileUtil.copy(new File(repoTestRoot, "norevision/mod1.1-after.jar"), artifact, null,
                 true);
         pubdate = new GregorianCalendar(2005, 4, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
@@ -331,18 +263,17 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
-        File sourceFile = new File(settings.getBaseDir().getParentFile(), "src");
-        resolver.addIvyPattern(sourceFile + FS + "test" + FS + "repositories" + FS + "checkmodified" + FS
+        resolver.addIvyPattern(repoTestRoot + FS + "checkmodified" + FS
                 + "ivy-[revision].xml");
-        resolver.addArtifactPattern(sourceFile + FS + "test" + FS + "repositories" + FS + "checkmodified" + FS
+        resolver.addArtifactPattern(repoTestRoot + FS + "checkmodified" + FS
                 + "[artifact]-[revision].[ext]");
-        File modify = new File("src/test/repositories/checkmodified/ivy-1.0.xml");
-        File artifact = new File("src/test/repositories/checkmodified/mod1.1-1.0.jar");
+        File modify = new File(repoTestRoot, "checkmodified/ivy-1.0.xml");
+        File artifact = new File(repoTestRoot, "checkmodified/mod1.1-1.0.jar");
 
         // 'publish' 'before' version
-        FileUtil.copy(new File("src/test/repositories/checkmodified/ivy-1.0-before.xml"), modify, null,
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/ivy-1.0-before.xml"), modify, null,
                 true);
-        FileUtil.copy(new File("src/test/repositories/checkmodified/mod1.1-1.0-before.jar"), artifact,
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/mod1.1-1.0-before.jar"), artifact,
                 null, true);
         Date pubdate = new GregorianCalendar(2004, 10, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
@@ -366,9 +297,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         r.close();
 
         // updates ivy file and artifact in repository
-        FileUtil.copy(new File("src/test/repositories/checkmodified/ivy-1.0-after.xml"), modify, null,
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/ivy-1.0-after.xml"), modify, null,
                 true);
-        FileUtil.copy(new File("src/test/repositories/checkmodified/mod1.1-1.0-after.jar"), artifact,
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/mod1.1-1.0-after.jar"), artifact,
                 null, true);
         pubdate = new GregorianCalendar(2005, 4, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
@@ -413,11 +344,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         resolver.setSettings(settings);
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
-        File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
-        resolver.addIvyPattern(new File("src").getAbsolutePath() + "/" + REL_IVY_PATTERN);
-        resolver.addArtifactPattern(sourceDir + "test/repositories/1/"
-                + "[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
+        resolver.addIvyPattern(getIvyPattern());
+        resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
 
         resolver.setLatestStrategy(new LatestRevisionStrategy());
 
@@ -439,11 +368,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         resolver.setSettings(settings);
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
-        File sourceDir = new File(settings.getBaseDir().getParentFile(), "src");
 
-        resolver.addIvyPattern(IVY_PATTERN);
-        resolver.addArtifactPattern(sourceDir + "/test/repositories/1/" +
-                "[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
+        resolver.addIvyPattern(getIvyPattern());
+        resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
 
         resolver.setLatestStrategy(new LatestTimeStrategy());
 
@@ -465,11 +392,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
-        resolver.addIvyPattern(IVY_PATTERN);
-        resolver
-                .addArtifactPattern(
-                        settings.getBaseDir() + "/test/repositories/1/"
-                                + "[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
+        resolver.addIvyPattern(getIvyPattern());
+        resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
 
         resolver.setLatestStrategy(new LatestRevisionStrategy());
 
@@ -494,7 +418,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
             resolver.addArtifactPattern(
                     // this pattern is not supported for transaction publish
-                    settings.getBaseDir() + "/test/repositories/1/[organisation]/[module]/[artifact]-[revision].[ext]");
+                    repoTestRoot + "/1/[organisation]/[module]/[artifact]-[revision].[ext]");
 
             ModuleRevisionId mrid = ModuleRevisionId.newInstance("myorg", "mymodule", "myrevision");
             Artifact artifact = new DefaultArtifact(mrid, new Date(), "myartifact", "mytype",
@@ -522,18 +446,14 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
             resolver.setTransactional("true");
 
             // the two patterns are inconsistent and thus not supported for transactions
-            resolver.addIvyPattern(
-                    settings.getBaseDir() +
-                            "/test/repositories/1/[organisation]-[module]/[revision]/[artifact]-[revision].[ext]");
-            resolver.addArtifactPattern(
-                    settings.getBaseDir() +
-                            "/test/repositories/1/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]");
+            resolver.addIvyPattern(repoTestRoot + "/1/[organisation]-[module]/[revision]/[artifact]-[revision].[ext]");
+            resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]");
 
             ModuleRevisionId mrid = ModuleRevisionId.newInstance("myorg", "mymodule", "myrevision");
             Artifact ivyArtifact = new DefaultArtifact(mrid, new Date(), "ivy", "ivy", "xml");
             Artifact artifact = new DefaultArtifact(mrid, new Date(), "myartifact", "mytype",
                     "myext");
-            File src = new File("test/repositories/ivysettings.xml");
+            File src = new File(repoTestRoot, "ivysettings.xml");
             try {
                 resolver.beginPublishTransaction(mrid, false);
                 resolver.publish(ivyArtifact, src, false);
@@ -555,14 +475,12 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
             resolver.setSettings(settings);
             resolver.setTransactional("true");
 
-            resolver.addArtifactPattern(
-                    settings.getBaseDir() +
-                            "/test/repositories/1/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]");
+            resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]");
 
             ModuleRevisionId mrid = ModuleRevisionId.newInstance("myorg", "mymodule", "myrevision");
             Artifact artifact = new DefaultArtifact(mrid, new Date(), "myartifact", "mytype",
                     "myext");
-            File src = new File("test/repositories/ivysettings.xml");
+            File src = new File(repoTestRoot, "ivysettings.xml");
             try {
                 // overwrite transaction not supported
                 resolver.beginPublishTransaction(mrid, true);
@@ -573,7 +491,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
                 assertTrue(ex.getMessage().indexOf("transactional") != -1);
             }
         } finally {
-            FileUtil.forceDelete(new File("test/repositories/1/myorg"));
+            FileUtil.forceDelete(new File(repoTestRoot, "1/myorg"));
         }
     }
 

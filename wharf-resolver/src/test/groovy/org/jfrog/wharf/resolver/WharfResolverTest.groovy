@@ -15,59 +15,59 @@
  */
 package org.jfrog.wharf.resolver
 
-import org.jfrog.wharf.ivy.resolver.IvyWharfResolver
+import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver
 import spock.lang.Specification
 
 /**
  * @author Hans Dockter
  */
 class WharfResolverTest extends Specification {
-  WharfResolverConfiguration wharfResolver = new WharfResolverConfiguration()
+    WharfResolverConfiguration wharfResolver = new WharfResolverConfiguration()
 
-  def testInit() {
-    expect:
-    wharfResolver.getSnapshotTimeout().is(IvyWharfResolver.DAILY)
-  }
+    def testInit() {
+        expect:
+        wharfResolver.getSnapshotTimeout().is(IBiblioWharfResolver.DAILY)
+    }
 
-  def timeoutStrategyNever_shouldReturnAlwaysFalse() {
-    expect:
-    !IvyWharfResolver.NEVER.isCacheTimedOut(0)
-    !IvyWharfResolver.NEVER.isCacheTimedOut(System.currentTimeMillis())
-  }
+    def timeoutStrategyNever_shouldReturnAlwaysFalse() {
+        expect:
+        !IBiblioWharfResolver.NEVER.isCacheTimedOut(0)
+        !IBiblioWharfResolver.NEVER.isCacheTimedOut(System.currentTimeMillis())
+    }
 
-  def timeoutStrategyAlways_shouldReturnAlwaysTrue() {
-    expect:
-    IvyWharfResolver.ALWAYS.isCacheTimedOut(0)
-    IvyWharfResolver.ALWAYS.isCacheTimedOut(System.currentTimeMillis())
-  }
+    def timeoutStrategyAlways_shouldReturnAlwaysTrue() {
+        expect:
+        IBiblioWharfResolver.ALWAYS.isCacheTimedOut(0)
+        IBiblioWharfResolver.ALWAYS.isCacheTimedOut(System.currentTimeMillis())
+    }
 
-  def timeoutStrategyDaily() {
-    expect:
-    !IvyWharfResolver.DAILY.isCacheTimedOut(System.currentTimeMillis())
-    IvyWharfResolver.ALWAYS.isCacheTimedOut(System.currentTimeMillis() - 24 * 60 * 60 * 1000)
-  }
+    def timeoutStrategyDaily() {
+        expect:
+        !IBiblioWharfResolver.DAILY.isCacheTimedOut(System.currentTimeMillis())
+        IBiblioWharfResolver.ALWAYS.isCacheTimedOut(System.currentTimeMillis() - 24 * 60 * 60 * 1000)
+    }
 
-  def timeoutInterval() {
-    def interval = new WharfResolverConfiguration.Interval(1000)
+    def timeoutInterval() {
+        def interval = new WharfResolverConfiguration.Interval(1000)
 
-    expect:
-    interval.isCacheTimedOut(System.currentTimeMillis() - 5000)
-    !interval.isCacheTimedOut(System.currentTimeMillis())
-  }
+        expect:
+        interval.isCacheTimedOut(System.currentTimeMillis() - 5000)
+        !interval.isCacheTimedOut(System.currentTimeMillis())
+    }
 
-  def setTimeoutByMilliseconds() {
-    when:
-    wharfResolver.setSnapshotTimeout(1000)
+    def setTimeoutByMilliseconds() {
+        when:
+        wharfResolver.setSnapshotTimeout(1000)
 
-    then:
-    ((IvyWharfResolver.Interval) wharfResolver.getSnapshotTimeout()).interval == 1000
-  }
+        then:
+        ((IBiblioWharfResolver.Interval) wharfResolver.getSnapshotTimeout()).interval == 1000
+    }
 
-  def setTimeoutByStrategy() {
-    when:
-    wharfResolver.setSnapshotTimeout(IvyWharfResolver.NEVER)
+    def setTimeoutByStrategy() {
+        when:
+        wharfResolver.setSnapshotTimeout(IBiblioWharfResolver.NEVER)
 
-    then:
-    wharfResolver.getSnapshotTimeout().is(IvyWharfResolver.NEVER)
-  }
+        then:
+        wharfResolver.getSnapshotTimeout().is(IBiblioWharfResolver.NEVER)
+    }
 }

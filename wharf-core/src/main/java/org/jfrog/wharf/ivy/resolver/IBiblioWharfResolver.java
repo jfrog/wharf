@@ -25,7 +25,7 @@ import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
-import org.apache.ivy.plugins.resolver.IvyRepResolver;
+import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
@@ -35,15 +35,15 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.Date;
 
 /**
  * @author Tomer Cohen
  */
-public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
+public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolver {
 
     private final WharfResourceDownloader downloader = new WharfResourceDownloader(this);
-
     private final ArtifactResourceResolver artifactResourceResolver = new ArtifactResourceResolver() {
         @Override
         public ResolvedResource resolve(Artifact artifact) {
@@ -51,9 +51,9 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
             return getArtifactRef(artifact, null);
         }
     };
+    protected CacheTimeoutStrategy snapshotTimeout = DAILY;
 
-    public IvyWharfResolver() {
-        //TODO: [by tc] support md5
+    public IBiblioWharfResolver() {
         super.setChecksums(WharfUtils.SHA1_ALGORITHM);
         WharfUtils.hackIvyBasicResolver(this);
     }
@@ -63,34 +63,59 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         throw new UnsupportedOperationException("Wharf resolvers enforce the usage of SHA1 checksums only!");
     }
 
+
     @Override
     protected ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
-        return convertToWharfResource(artifactRef);
+        return new ResolvedResource(new WharfUrlResource(artifactRef.getResource()), artifactRef.getRevision());
+    }
+
+    /**
+     * Returns the timeout strategy for a Maven Snapshot in the cache
+     */
+    public CacheTimeoutStrategy getSnapshotTimeout() {
+        return snapshotTimeout;
+    }
+
+    /**
+     * Sets the time in ms a Maven Snapshot in the cache is not checked for a newer version
+     *
+     * @param snapshotLifetime The lifetime in ms
+     */
+    public void setSnapshotTimeout(long snapshotLifetime) {
+        this.snapshotTimeout = new Interval(snapshotLifetime);
+    }
+
+    /**
+     * Sets a timeout strategy for a Maven Snapshot in the cache
+     *
+     * @param cacheTimeoutStrategy The strategy
+     */
+    public void setSnapshotTimeout(CacheTimeoutStrategy cacheTimeoutStrategy) {
+        this.snapshotTimeout = cacheTimeoutStrategy;
     }
 
     @Override
-    public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
-        ResolvedResource ivyFileRef = super.findIvyFileRef(dd, data);
-        return convertToWharfResource(ivyFileRef);
+    public long get(Resource resource, File dest) throws IOException {
+        return super.get(resource, dest);
     }
 
-    private ResolvedResource convertToWharfResource(ResolvedResource artifactRef) {
-        if (artifactRef == null) {
-            return null;
-        }
-        Resource resource = artifactRef.getResource();
-        if (resource == null) {
-            return artifactRef;
-        }
-        return new ResolvedResource(new WharfUrlResource(resource), artifactRef.getRevision());
+    @Override
+    public ResourceDownloader getDownloader() {
+        return downloader;
     }
 
+    @Override
+    public ArtifactResourceResolver getArtifactResourceResolver() {
+        return artifactResourceResolver;
+    }
 
     @Override
     protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
+        setChangingPattern(null);
         ResolvedModuleRevision moduleRevision = super.findModuleInCache(dd, data);
         if (moduleRevision == null) {
+            setChangingPattern(".*-SNAPSHOT");
             return null;
         }
         ModuleRevisionMetadata metadata = getCacheProperties(dd, moduleRevision);
@@ -99,9 +124,15 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
             metadata = new ModuleRevisionMetadata();
         }
         updateCachePropertiesToCurrentTime(metadata);
+        Long lastResolvedTime = getLastResolvedTime(metadata);
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
-        return moduleRevision;
+        if (snapshotTimeout.isCacheTimedOut(lastResolvedTime)) {
+            setChangingPattern(".*-SNAPSHOT");
+            return null;
+        } else {
+            return moduleRevision;
+        }
     }
 
     @Override
@@ -109,10 +140,6 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         return WharfUtils.getAndCheck(this, resource, dest);
     }
 
-    @Override
-    public long get(Resource resource, File dest) throws IOException {
-        return super.get(resource, dest);
-    }
 
     private void updateCachePropertiesToCurrentTime(ModuleRevisionMetadata cacheProperties) {
         cacheProperties.latestResolvedTime = String.valueOf(System.currentTimeMillis());
@@ -129,13 +156,52 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         return cacheManager.getMetadataHandler().getModuleRevisionMetadata(moduleRevision.getId());
     }
 
-    @Override
-    public ResourceDownloader getDownloader() {
-        return downloader;
+    public interface CacheTimeoutStrategy {
+        boolean isCacheTimedOut(long lastResolvedTime);
     }
 
-    @Override
-    public ArtifactResourceResolver getArtifactResourceResolver() {
-        return artifactResourceResolver;
+    public static class Interval implements CacheTimeoutStrategy {
+        private long interval;
+
+        public Interval(long interval) {
+            this.interval = interval;
+        }
+
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            return System.currentTimeMillis() - lastResolvedTime > interval;
+        }
     }
+
+    public static final CacheTimeoutStrategy NEVER = new CacheTimeoutStrategy() {
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            return false;
+        }
+    };
+
+    public static final CacheTimeoutStrategy ALWAYS = new CacheTimeoutStrategy() {
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            return true;
+        }
+    };
+
+    public static final CacheTimeoutStrategy DAILY = new CacheTimeoutStrategy() {
+        @Override
+        public boolean isCacheTimedOut(long lastResolvedTime) {
+            Calendar calendarCurrent = Calendar.getInstance();
+            calendarCurrent.setTime(new Date());
+            int dayOfYear = calendarCurrent.get(Calendar.DAY_OF_YEAR);
+            int year = calendarCurrent.get(Calendar.YEAR);
+
+            Calendar calendarLastResolved = Calendar.getInstance();
+            calendarLastResolved.setTime(new Date(lastResolvedTime));
+            if (calendarLastResolved.get(Calendar.YEAR) == year &&
+                    calendarLastResolved.get(Calendar.DAY_OF_YEAR) == dayOfYear) {
+                return false;
+            }
+            return true;
+        }
+    };
 }
