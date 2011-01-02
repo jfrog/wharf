@@ -57,7 +57,7 @@ public class MrmKryoMarshallerImpl implements MrmMarshaller {
                 }
             }
         } else {
-            Message.warn("File: " + file.getAbsolutePath() + " was not found");
+            Message.debug("File: " + file.getAbsolutePath() + " was not found");
         }
         return null;
     }

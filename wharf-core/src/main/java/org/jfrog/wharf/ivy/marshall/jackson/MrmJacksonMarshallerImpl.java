@@ -56,6 +56,8 @@ public class MrmJacksonMarshallerImpl implements MrmMarshaller {
                     }
                 }
             }
+        } else {
+            Message.debug("File: " + file.getAbsolutePath() + " was not found");
         }
         return null;
     }
