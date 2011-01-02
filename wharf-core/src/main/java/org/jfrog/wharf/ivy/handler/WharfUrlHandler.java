@@ -74,7 +74,7 @@ public class WharfUrlHandler extends BasicURLHandler {
                     String serverName = httpCon.getHeaderField("Server");
                     String sha1 = null;
                     if (serverName != null && serverName.startsWith("Artifactory/")) {
-                        sha1 = httpCon.getHeaderField("eTag");
+                        sha1 = httpCon.getHeaderField("ETag");
                         Message.debug("Found eTag, populated with: " + sha1);
                     }
                     return new WharfUrlInfo(true, httpCon.getContentLength(), con.getLastModified(), sha1);
