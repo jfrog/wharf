@@ -20,7 +20,12 @@ package org.jfrog.build
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 
+import java.text.DateFormat
 import java.text.SimpleDateFormat
 
 class Version {
@@ -92,5 +97,30 @@ class Version {
             throw new GradleException("Can't determine whether this is a release build before the task graph is populated")
         }
         return release
+    }
+}
+
+class WriteVersionProperties extends DefaultTask {
+    @Input
+    String getVersion() { return project.version.toString() }
+
+    @Input
+    Date getBuildTime() { return project.version.buildTime }
+
+    @OutputFile
+    File propertiesFile
+
+    @TaskAction
+    def void generate() {
+        logger.info('Write version properties to: {}', propertiesFile)
+        Properties versionProperties = new Properties()
+        versionProperties.putAll([
+                'version': version,
+                'buildTime': DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL).format(buildTime)
+        ])
+        propertiesFile.withOutputStream {
+            versionProperties.store(it, '')
+        }
+
     }
 }

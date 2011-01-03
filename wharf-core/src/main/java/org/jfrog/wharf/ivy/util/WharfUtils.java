@@ -31,17 +31,30 @@ import java.lang.reflect.Field;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.Properties;
 
 /**
  * @author Tomer Cohen
  */
 public class WharfUtils {
+    private final static String VERSION = "version";
+    private final static String CORE_PROPERTY_FILE = "/org/jfrog/wharf/wharf-core.properties";
 
     public static final String SHA1_ALGORITHM = "sha1";
     public static final String MD5_ALGORITHM = "md5";
 
     public static String getChecksumAlgorithm() {
         return SHA1_ALGORITHM;
+    }
+
+    public static String getCoreVersion() {
+        try {
+            Properties props = new Properties();
+            props.load(WharfUtils.class.getResourceAsStream(CORE_PROPERTY_FILE));
+            return props.getProperty(VERSION);
+        } catch (IOException e) {
+            return "Error reading " + CORE_PROPERTY_FILE + ": " + e.getMessage();
+        }
     }
 
     public static void hackIvyBasicResolver(WharfResolver wharfResolver) {
