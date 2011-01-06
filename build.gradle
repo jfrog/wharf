@@ -17,6 +17,7 @@
  */
 
 import org.jfrog.build.Version
+import org.jfrog.build.Status
 import org.jfrog.build.WriteVersionProperties
 
 // version of the root project does not matter
@@ -53,11 +54,13 @@ subprojects {
 
 project('wharf-resolver') {
     version = new Version(project)
+    status = new Status(project)
     description = 'Basic client configuration classes for resolution'
 }
 
 project('wharf-core') {
     version = new Version(project)
+    status = new Status(project)
     description = 'Ivy cache system for multi-resolvers'
 
     dependencies {
