@@ -21,12 +21,20 @@ package org.jfrog.wharf.ivy.util;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.BasicResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
-import org.apache.ivy.util.*;
+import org.apache.ivy.util.ChecksumHelper;
+import org.apache.ivy.util.CopyProgressEvent;
+import org.apache.ivy.util.CopyProgressListener;
+import org.apache.ivy.util.FileUtil;
+import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.resolver.WharfResolver;
 import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -209,19 +217,20 @@ public class WharfUtils {
             // If no checksum found in HEAD request, download the actual .sha1 resource
             // In non Artifactory server will do 2 queries HEAD + GET
             Resource csRes = resource.clone(resource.getName() + "." + WharfUtils.getChecksumAlgorithm());
-            if (csRes.exists()) {
-                File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgorithm());
-                wharfResolver.get(csRes, tempChecksum);
+            if (!csRes.exists()) {
+                File file = File.createTempFile("temp", "backup");
                 try {
-                    checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
+                    wharfResolver.get(resource, file);
                 } finally {
-                    FileUtil.forceDelete(tempChecksum);
+                    FileUtil.forceDelete(file);
                 }
-            } else {
-                // The Wharf system enforce the presence of checksums on the remote repo
-                throw new IOException(
-                        "invalid " + WharfUtils.getChecksumAlgorithm() + " checksum file " + csRes.getName() +
-                                " not found!");
+            }
+            File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgorithm());
+            wharfResolver.get(csRes, tempChecksum);
+            try {
+                checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
+            } finally {
+                FileUtil.forceDelete(tempChecksum);
             }
         }
         if (checksumValue == null) {

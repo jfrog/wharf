@@ -19,14 +19,18 @@
 package org.jfrog.wharf.ivy.handler;
 
 import org.apache.ivy.Ivy;
+import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.url.BasicURLHandler;
 import org.apache.ivy.util.url.IvyAuthenticator;
 import org.apache.ivy.util.url.URLHandler;
+import org.jfrog.wharf.ivy.util.WharfUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
@@ -75,7 +79,9 @@ public class WharfUrlHandler extends BasicURLHandler {
                     String sha1 = null;
                     if (serverName != null && serverName.startsWith("Artifactory/")) {
                         sha1 = httpCon.getHeaderField("ETag");
-                        Message.debug("Found eTag, populated with: " + sha1);
+                        if (sha1 == null) {
+                            Message.debug("Found eTag, populated with: " + sha1);
+                        }
                     }
                     return new WharfUrlInfo(true, httpCon.getContentLength(), con.getLastModified(), sha1);
                 }
@@ -84,11 +90,9 @@ public class WharfUrlHandler extends BasicURLHandler {
                 if (contentLength <= 0) {
                     return UNAVAILABLE;
                 } else {
-                    String sha1 = null;
-                    //TODO: [by tc] if the url connection is a file connection, calculate the sha1 from the file
-                    //con.getHeaderField("eTag");
-                    //Message.debug("Found eTag, populated with: " + sha1);
-                    return new WharfUrlInfo(true, contentLength, con.getLastModified(), sha1);
+                    File file = new File(con.getURL().toURI());
+                    return new WharfUrlInfo(true, contentLength, con.getLastModified(),
+                            WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "sha1")));
                 }
             }
         } catch (UnknownHostException e) {
@@ -97,6 +101,8 @@ public class WharfUrlHandler extends BasicURLHandler {
                     + "a proxy server that is not well configured.");
         } catch (IOException e) {
             Message.error("Server access Error: " + e.getMessage() + " url=" + url);
+        } catch (URISyntaxException e) {
+            Message.error("File access Error: " + e.getMessage() + " url=" + url);
         } finally {
             disconnect(con);
         }

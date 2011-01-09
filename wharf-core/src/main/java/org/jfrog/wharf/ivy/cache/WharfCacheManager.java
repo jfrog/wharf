@@ -55,13 +55,10 @@ import org.apache.ivy.plugins.repository.ResourceHelper;
 import org.apache.ivy.plugins.resolver.AbstractResolver;
 import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
-import org.apache.ivy.plugins.resolver.URLResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
-import org.apache.ivy.util.url.URLHandler;
-import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -881,13 +878,6 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                     // put into the artifact the resolverId as an extra attribute.
                     transformedArtifact =
                             ArtifactMetadata.fillResolverId(transformedArtifact, wharfResolverMetadata.getId());
-                    // TODO: An artifact was check with head request (result in mdRef)
-                    if (resolver instanceof URLResolver) {
-                        URLHandler urlHandler = URLHandlerRegistry.getHttp();
-                        urlHandler.setRequestMethod(URLHandler.REQUEST_METHOD_HEAD);
-                        URLHandler.URLInfo info = urlHandler.getURLInfo(moduleArtifact.getUrl(), 5000);
-                        long lastModifiedFromHeadRequest = info.getLastModified();
-                    }
                     // If there is a cached file for this dependency resolver => delete the file and metadata
                     ArtifactOrigin origin = getSavedArtifactOrigin(transformedArtifact);
                     File artFile = getArchiveFileInCache(transformedArtifact, origin);
