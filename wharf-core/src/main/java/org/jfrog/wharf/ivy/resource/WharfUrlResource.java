@@ -47,6 +47,8 @@ public class WharfUrlResource implements Resource {
 
     private String sha1;
 
+    private String md5;
+
     public WharfUrlResource(URL url) {
         this.url = url;
     }
@@ -101,6 +103,7 @@ public class WharfUrlResource implements Resource {
         lastModified = info.getLastModified();
         exists = info.isReachable();
         sha1 = WharfUtils.getCleanChecksum(info.getSha1());
+        md5 = WharfUtils.getCleanChecksum(info.getMd5());
         init = true;
     }
 
@@ -117,6 +120,13 @@ public class WharfUrlResource implements Resource {
             init();
         }
         return sha1;
+    }
+
+    public String getMd5() {
+        if (!init) {
+            init();
+        }
+        return md5;
     }
 
     @Override
