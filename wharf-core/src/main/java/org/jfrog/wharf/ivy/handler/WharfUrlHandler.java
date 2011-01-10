@@ -20,10 +20,12 @@ package org.jfrog.wharf.ivy.handler;
 
 import org.apache.ivy.Ivy;
 import org.apache.ivy.util.ChecksumHelper;
+import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.url.BasicURLHandler;
 import org.apache.ivy.util.url.IvyAuthenticator;
 import org.apache.ivy.util.url.URLHandler;
+import org.jfrog.wharf.ivy.util.WharfCopyListener;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
@@ -41,7 +43,7 @@ import java.net.UnknownHostException;
 public class WharfUrlHandler extends BasicURLHandler {
 
     private static final int BUFFER_SIZE = 64 * 1024;
-    public static final WharfUrlInfo UNAVAILABLE = new WharfUrlInfo(false, 0, 0, "");
+    public static final WharfUrlInfo UNAVAILABLE = new WharfUrlInfo(false, 0, 0, "", "");
 
 
     private static final class HttpStatus {
@@ -77,13 +79,37 @@ public class WharfUrlHandler extends BasicURLHandler {
                 if (checkStatusCode(url, httpCon)) {
                     String serverName = httpCon.getHeaderField("Server");
                     String sha1 = null;
+                    String md5 = null;
                     if (serverName != null && serverName.startsWith("Artifactory/")) {
-                        sha1 = httpCon.getHeaderField("ETag");
-                        if (sha1 == null) {
-                            Message.debug("Found eTag, populated with: " + sha1);
+                        sha1 = getSha1FromHeader(httpCon);
+                        if (sha1 != null) {
+                            Message.debug("Found sha1 tag, populated with: " + sha1);
+                        } else {
+                            Message.debug("No sha1 tag found");
+                        }
+                        md5 = getMd5FromHeader(httpCon);
+                    } else {
+                        //For non-artifactory ask for the sha1/md5 directly
+                        String checksumUrl = url.toExternalForm() + "." + WharfUtils.SHA1_ALGORITHM;
+                        URL newChecksumUrl = new URL(checksumUrl);
+                        File tempChecksum = File.createTempFile("temp", "." + WharfUtils.SHA1_ALGORITHM);
+                        try {
+                            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
+                            sha1 = WharfUtils.getCleanChecksum(tempChecksum);
+                        } finally {
+                            FileUtil.forceDelete(tempChecksum);
+                        }
+                        checksumUrl = url.toExternalForm() + "." + WharfUtils.MD5_ALGORITHM;
+                        newChecksumUrl = new URL(checksumUrl);
+                        tempChecksum = File.createTempFile("temp", "." + WharfUtils.MD5_ALGORITHM);
+                        try {
+                            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
+                            md5 = WharfUtils.getCleanChecksum(tempChecksum);
+                        } finally {
+                            FileUtil.forceDelete(tempChecksum);
                         }
                     }
-                    return new WharfUrlInfo(true, httpCon.getContentLength(), con.getLastModified(), sha1);
+                    return new WharfUrlInfo(true, httpCon.getContentLength(), con.getLastModified(), sha1, md5);
                 }
             } else {
                 int contentLength = con.getContentLength();
@@ -92,7 +118,8 @@ public class WharfUrlHandler extends BasicURLHandler {
                 } else {
                     File file = new File(con.getURL().toURI());
                     return new WharfUrlInfo(true, contentLength, con.getLastModified(),
-                            WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "sha1")));
+                            WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "sha1")),
+                            WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "md5")));
                 }
             }
         } catch (UnknownHostException e) {
@@ -111,17 +138,34 @@ public class WharfUrlHandler extends BasicURLHandler {
 
     public static class WharfUrlInfo extends URLInfo {
         private final String sha1;
+        private final String md5;
 
-        private WharfUrlInfo(boolean available, long contentLength, long lastModified, String sha1) {
+        private WharfUrlInfo(boolean available, long contentLength, long lastModified, String sha1, String md5) {
             super(available, contentLength, lastModified);
             this.sha1 = sha1;
+            this.md5 = md5;
         }
 
         public String getSha1() {
             return sha1;
         }
+
+        public String getMd5() {
+            return md5;
+        }
     }
 
+    private String getSha1FromHeader(HttpURLConnection httpCon) {
+        String sha1 = httpCon.getHeaderField("X-Checksum-Sha1");
+        if (sha1 == null) {
+            sha1 = httpCon.getHeaderField("ETag");
+        }
+        return sha1;
+    }
+
+    private String getMd5FromHeader(HttpURLConnection httpCon) {
+        return httpCon.getHeaderField("X-Checksum-Md5");
+    }
 
     private void disconnect(URLConnection con) {
         if (con instanceof HttpURLConnection) {

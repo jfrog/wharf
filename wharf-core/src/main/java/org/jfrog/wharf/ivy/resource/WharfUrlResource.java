@@ -25,6 +25,7 @@ import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -66,6 +67,9 @@ public class WharfUrlResource implements Resource {
 
     @Override
     public String getName() {
+        if ("file".equals(url.getProtocol())) {
+            return url.getFile();
+        }
         return url.toExternalForm();
     }
 
@@ -74,8 +78,12 @@ public class WharfUrlResource implements Resource {
         try {
             return new WharfUrlResource(new URL(cloneName));
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(
-                    "bad clone name provided: not suitable for an URLResource: " + cloneName);
+            try {
+                return new WharfUrlResource(new File(cloneName).toURI().toURL());
+            } catch (MalformedURLException e1) {
+                throw new IllegalArgumentException(
+                        "bad clone name provided: not suitable for an URLResource: " + cloneName);
+            }
         }
     }
 

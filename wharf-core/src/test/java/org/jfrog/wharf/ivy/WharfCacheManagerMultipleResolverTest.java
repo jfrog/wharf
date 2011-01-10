@@ -54,12 +54,11 @@ import static org.junit.Assert.*;
  *
  * @author Tomer Cohen
  */
-public class WharfCacheManagerMultipleResolverTest {
+public class WharfCacheManagerMultipleResolverTest extends AbstractDependencyResolverTest{
     private FileSystemResolver resolverA;
     private FileSystemResolver resolverB;
     private ChainResolver chainResolver;
     private ResolveData resolveData;
-    private File cache;
 
     private static final String FS = System.getProperty("file.separator");
     private static final String REL_IVY_PATTERN = "test" + FS + "repositories" + FS + "1" + FS
@@ -69,8 +68,6 @@ public class WharfCacheManagerMultipleResolverTest {
 
     @Before
     public void setup() {
-        cache = new File("build/test/cache");
-        FileUtil.forceDelete(cache);
         IvySettings settings1 = new IvySettings();
         settings1.setDefaultCache(cache);
         ResolveEngine engine = new ResolveEngine(settings1, new EventManager(), new SortEngine(settings1));

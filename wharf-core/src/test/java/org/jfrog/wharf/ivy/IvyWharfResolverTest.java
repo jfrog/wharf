@@ -25,6 +25,7 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
+import org.apache.ivy.plugins.repository.file.FileRepository;
 import org.jfrog.wharf.ivy.resolver.IvyWharfResolver;
 import org.junit.Before;
 import org.junit.Test;
