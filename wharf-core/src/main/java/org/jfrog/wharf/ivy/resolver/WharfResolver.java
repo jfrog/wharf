@@ -22,7 +22,6 @@ import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
-import org.apache.ivy.plugins.resolver.IvyRepResolver;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,8 +30,8 @@ import java.io.IOException;
  * @author Tomer Cohen
  */
 public interface WharfResolver {
-    String DEFAULT_IVY_PATTERN = IvyRepResolver.DEFAULT_IVYPATTERN;
-    String DEFAULT_ART_PATTERN = "[organisation]/[module]/[type]s/[artifact]-[revision](-[classifier]).[ext]";
+    String DEFAULT_IVY_PATTERN = "[organisation]/[module]/ivy-[revision].xml";
+    String DEFAULT_ART_PATTERN = "[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]";
 
     long getAndCheck(Resource resource, File dest) throws IOException;
 

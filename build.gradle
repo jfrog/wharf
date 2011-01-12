@@ -17,7 +17,6 @@
  */
 
 import org.jfrog.build.Version
-import org.jfrog.build.Status
 import org.jfrog.build.WriteVersionProperties
 
 // version of the root project does not matter
@@ -36,6 +35,13 @@ subprojects {
     apply plugin: 'maven'
     apply plugin: 'java'
 
+    version = new Version(it)
+    status = version.getStatus()
+
+    task printVersion {
+        println "Version of ${it.path} is $version with status $status"
+    }
+
     task sourceJar(type: Jar) {
         classifier = 'sources'
         from sourceSets.main.java
@@ -53,14 +59,10 @@ subprojects {
 }
 
 project('wharf-resolver') {
-    version = new Version(project)
-    status = new Status(project)
     description = 'Basic client configuration classes for resolution'
 }
 
 project('wharf-core') {
-    version = new Version(project)
-    status = new Status(project)
     description = 'Ivy cache system for multi-resolvers'
 
     dependencies {

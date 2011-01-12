@@ -72,16 +72,6 @@ class Version {
         buildTime = new Date(timestampFile.lastModified())
         if (!release)
             this.versionNumber += "-" + getTimestamp()
-        /*
-                project.gradle.taskGraph.whenReady {graph ->
-                    if (graph.hasTask(':releaseVersion')) {
-                        release = true
-                    } else {
-                        this.versionNumber += "-" + getTimestamp()
-                        release = false
-                    }
-                }
-        */
     }
 
     String toString() {
@@ -89,7 +79,14 @@ class Version {
     }
 
     String getTimestamp() {
-        new SimpleDateFormat('yyyyMMddHHmmssZ').format(buildTime)
+        // Convert local file timestamp to UTC
+        def format = new SimpleDateFormat('yyyyMMddHHmmss')
+        format.setCalendar(Calendar.getInstance(TimeZone.getTimeZone('UTC')));
+        return format.format(buildTime)
+    }
+
+    String getStatus() {
+        return release ? "release" : "integration"
     }
 
     boolean isRelease() {
