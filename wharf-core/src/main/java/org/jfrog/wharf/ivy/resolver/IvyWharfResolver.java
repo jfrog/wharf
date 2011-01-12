@@ -32,6 +32,7 @@ import org.apache.ivy.plugins.resolver.util.ResourceMDParser;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
+import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
@@ -57,7 +58,9 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         //TODO: [by tc] support md5
         super.setChecksums(WharfUtils.SHA1_ALGORITHM);
         WharfUtils.hackIvyBasicResolver(this);
+        setRepository(new WharfURLRepository());
     }
+
 
     @Override
     public void setChecksums(String checksums) {

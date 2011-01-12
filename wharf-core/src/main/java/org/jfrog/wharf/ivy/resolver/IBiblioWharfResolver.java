@@ -30,6 +30,7 @@ import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
+import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
@@ -55,6 +56,7 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
     public IBiblioWharfResolver() {
         super.setChecksums(WharfUtils.SHA1_ALGORITHM);
         WharfUtils.hackIvyBasicResolver(this);
+        setRepository(new WharfURLRepository());
     }
 
     @Override

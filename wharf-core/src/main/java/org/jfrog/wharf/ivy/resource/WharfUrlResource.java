@@ -62,6 +62,12 @@ public class WharfUrlResource implements Resource {
             }
         } else if (resource instanceof URLResource) {
             url = ((URLResource) resource).getURL();
+        } else if (resource instanceof WharfUrlResource) {
+            try {
+                url = new URL(resource.getName());
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
         } else {
             throw new IllegalArgumentException("Wharf Downloader manage only URL and Files");
         }
