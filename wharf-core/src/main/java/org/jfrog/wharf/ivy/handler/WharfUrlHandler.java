@@ -78,36 +78,30 @@ public class WharfUrlHandler extends BasicURLHandler {
                 }
                 if (checkStatusCode(url, httpCon)) {
                     String serverName = httpCon.getHeaderField("Server");
-                    String sha1 = null;
-                    String md5 = null;
+                    String sha1;
+                    String md5;
                     if (serverName != null && serverName.startsWith("Artifactory/")) {
                         sha1 = getSha1FromHeader(httpCon);
-                        if (sha1 != null) {
-                            Message.debug("Found sha1 tag, populated with: " + sha1);
-                        } else {
+                        if (sha1 == null) {
+                            // force download of the artifact to populate checksums
                             Message.debug("No sha1 tag found");
+                            File tempFile = File.createTempFile("temp", "orig");
+                            try {
+                                FileUtil.copy(url, tempFile, new WharfCopyListener());
+                            } finally {
+                                FileUtil.forceDelete(tempFile);
+                            }
+                            // get the checksum directly.
+                            sha1 = getSha1(url);
+                            md5 = getMd5(url);
+                        } else {
+                            Message.debug("Sha1 tag found: " + sha1);
+                            md5 = getMd5FromHeader(httpCon);
                         }
-                        md5 = getMd5FromHeader(httpCon);
                     } else {
                         //For non-artifactory ask for the sha1/md5 directly
-                        String checksumUrl = url.toExternalForm() + "." + WharfUtils.SHA1_ALGORITHM;
-                        URL newChecksumUrl = new URL(checksumUrl);
-                        File tempChecksum = File.createTempFile("temp", "." + WharfUtils.SHA1_ALGORITHM);
-                        try {
-                            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
-                            sha1 = WharfUtils.getCleanChecksum(tempChecksum);
-                        } finally {
-                            FileUtil.forceDelete(tempChecksum);
-                        }
-                        checksumUrl = url.toExternalForm() + "." + WharfUtils.MD5_ALGORITHM;
-                        newChecksumUrl = new URL(checksumUrl);
-                        tempChecksum = File.createTempFile("temp", "." + WharfUtils.MD5_ALGORITHM);
-                        try {
-                            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
-                            md5 = WharfUtils.getCleanChecksum(tempChecksum);
-                        } finally {
-                            FileUtil.forceDelete(tempChecksum);
-                        }
+                        sha1 = getSha1(url);
+                        md5 = getMd5(url);
                     }
                     return new WharfUrlInfo(true, httpCon.getContentLength(), con.getLastModified(), sha1, md5);
                 }
@@ -134,6 +128,36 @@ public class WharfUrlHandler extends BasicURLHandler {
             disconnect(con);
         }
         return UNAVAILABLE;
+    }
+
+    private String getSha1(URL url) throws IOException {
+        String sha1;
+        String checksumUrl = url.toExternalForm() + "." + WharfUtils.SHA1_ALGORITHM;
+        Message.debug("Retrieving " + WharfUtils.SHA1_ALGORITHM + " from: " + url.toExternalForm());
+        URL newChecksumUrl = new URL(checksumUrl);
+        File tempChecksum = File.createTempFile("temp", "." + WharfUtils.SHA1_ALGORITHM);
+        try {
+            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
+            sha1 = WharfUtils.getCleanChecksum(tempChecksum);
+        } finally {
+            FileUtil.forceDelete(tempChecksum);
+        }
+        return sha1;
+    }
+
+    private String getMd5(URL url) throws IOException {
+        String md5;
+        String checksumUrl = url.toExternalForm() + "." + WharfUtils.MD5_ALGORITHM;
+        Message.debug("Retrieving " + WharfUtils.MD5_ALGORITHM + " from: " + url.toExternalForm());
+        URL newChecksumUrl = new URL(checksumUrl);
+        File tempChecksum = File.createTempFile("temp", "." + WharfUtils.MD5_ALGORITHM);
+        try {
+            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
+            md5 = WharfUtils.getCleanChecksum(tempChecksum);
+        } finally {
+            FileUtil.forceDelete(tempChecksum);
+        }
+        return md5;
     }
 
     public static class WharfUrlInfo extends URLInfo {
