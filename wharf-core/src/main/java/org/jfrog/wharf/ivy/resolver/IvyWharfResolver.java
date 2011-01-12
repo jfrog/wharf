@@ -20,6 +20,7 @@ package org.jfrog.wharf.ivy.resolver;
 
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
@@ -27,6 +28,7 @@ import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.resolver.IvyRepResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
+import org.apache.ivy.plugins.resolver.util.ResourceMDParser;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -66,6 +68,12 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
     protected ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
         return WharfUtils.convertToWharfResource(artifactRef);
+    }
+
+    @Override
+    protected ResolvedResource findResourceUsingPattern(ModuleRevisionId mrid, String pattern, Artifact artifact,
+            ResourceMDParser rmdparser, Date date) {
+        return super.findResourceUsingPattern(mrid, pattern, artifact, rmdparser, date);
     }
 
     @Override

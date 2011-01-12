@@ -110,10 +110,18 @@ public class WharfUrlHandler extends BasicURLHandler {
                 if (contentLength <= 0) {
                     return UNAVAILABLE;
                 } else {
-                    File file = new File(con.getURL().toURI());
-                    return new WharfUrlInfo(true, contentLength, con.getLastModified(),
-                            WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "sha1")),
-                            WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "md5")));
+                    URL fileUrl = con.getURL();
+                    File file = new File(fileUrl.toURI());
+                    // first try to get checksums directly from FS, if doesn't exist compute manually.
+                    String sha1 = getSha1(fileUrl);
+                    if (sha1 == null) {
+                        sha1 = WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "sha1"));
+                    }
+                    String md5 = getMd5(fileUrl);
+                    if (md5 == null) {
+                        md5 = WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "md5"));
+                    }
+                    return new WharfUrlInfo(true, contentLength, con.getLastModified(), sha1, md5);
                 }
             }
         } catch (UnknownHostException e) {
@@ -139,6 +147,9 @@ public class WharfUrlHandler extends BasicURLHandler {
         try {
             FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
             sha1 = WharfUtils.getCleanChecksum(tempChecksum);
+        } catch (IOException e) {
+            Message.warn("SHA1 not found: " + e.getMessage());
+            return null;
         } finally {
             FileUtil.forceDelete(tempChecksum);
         }
@@ -146,7 +157,7 @@ public class WharfUrlHandler extends BasicURLHandler {
     }
 
     private String getMd5(URL url) throws IOException {
-        String md5;
+        String md5 = null;
         String checksumUrl = url.toExternalForm() + "." + WharfUtils.MD5_ALGORITHM;
         Message.debug("Retrieving " + WharfUtils.MD5_ALGORITHM + " from: " + url.toExternalForm());
         URL newChecksumUrl = new URL(checksumUrl);
@@ -154,6 +165,9 @@ public class WharfUrlHandler extends BasicURLHandler {
         try {
             FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
             md5 = WharfUtils.getCleanChecksum(tempChecksum);
+        } catch (IOException e) {
+            Message.warn("MD5 not found: " + e.getMessage());
+            return null;
         } finally {
             FileUtil.forceDelete(tempChecksum);
         }

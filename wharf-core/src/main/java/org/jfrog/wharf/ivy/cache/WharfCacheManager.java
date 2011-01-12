@@ -1105,9 +1105,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 backup = new File(dest.getAbsolutePath() + ".backup");
                 FileUtil.copy(dest, backup, null, true);
             }
-            if (!(resource instanceof WharfUrlResource)) {
+          /*  if (!(resource instanceof WharfUrlResource)) {
                 resource = new WharfUrlResource(resource);
-            }
+            }*/
             delegate.download(artifact, resource, dest);
         }
 

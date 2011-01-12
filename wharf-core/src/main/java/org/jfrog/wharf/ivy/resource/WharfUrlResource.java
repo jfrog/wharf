@@ -69,9 +69,6 @@ public class WharfUrlResource implements Resource {
 
     @Override
     public String getName() {
-        if ("file".equals(url.getProtocol())) {
-            return url.getFile();
-        }
         return url.toExternalForm();
     }
 
