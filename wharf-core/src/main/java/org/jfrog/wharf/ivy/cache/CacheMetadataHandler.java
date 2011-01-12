@@ -24,7 +24,6 @@ import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.lock.LockStrategy;
 import org.apache.ivy.plugins.lock.NoLockStrategy;
@@ -39,24 +38,21 @@ import java.util.Date;
 /**
  * @author Tomer Cohen
  */
-public class CacheMetadataHandler implements IvySettingsAware {
-
+public class CacheMetadataHandler {
 
     private static final ArtifactLockStrategy LOCK_STRATEGY = new ArtifactLockStrategy();
 
     private final MrmMarshaller mrmMarshaller = MarshallerFactory.createMetadataMarshaller();
 
-    private File baseDir;
-
-    private IvySettings settings;
+    private final File baseDir;
+    private final IvySettings settings;
 
     private LockStrategy lockStrategy;
-
     private String lockStrategyName;
 
-
-    public CacheMetadataHandler(File baseDir) {
+    public CacheMetadataHandler(File baseDir, IvySettings settings) {
         this.baseDir = baseDir;
+        this.settings = settings;
         setLockStrategy(LOCK_STRATEGY);
     }
 
@@ -87,11 +83,6 @@ public class CacheMetadataHandler implements IvySettingsAware {
     private File getWharfDataFile(ModuleRevisionId mrid) {
         String wharfDataFileLocation = IvyPatternHelper.substitute(mrmMarshaller.getDataFilePattern(), mrid);
         return new File(baseDir, wharfDataFileLocation);
-    }
-
-    @Override
-    public void setSettings(IvySettings settings) {
-        this.settings = settings;
     }
 
     public LockStrategy getLockStrategy() {

@@ -18,9 +18,9 @@
 
 package org.jfrog.wharf.marahsller.kryo;
 
+import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
 import org.jfrog.wharf.ivy.marshall.kryo.WharfKryoResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
-import org.jfrog.wharf.util.CacheCleaner;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,7 +46,7 @@ public class WharfKryoResolverMarshallerTest {
 
     @After
     public void tearDown() {
-        CacheCleaner.deleteDir(cacheDir);
+        AbstractDependencyResolverTest.deleteCacheFolder(cacheDir);
     }
 
     @Test

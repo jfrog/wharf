@@ -45,57 +45,76 @@ public class AbstractDependencyResolverTest {
     protected static final String FS = System.getProperty("file.separator");
     protected static final String REL_IVY_PATTERN = "1" + FS
             + "[organisation]" + FS + "[module]" + FS + "ivys" + FS + "ivy-[revision].xml";
-    protected IvySettings settings;
-    private ResolveEngine engine;
-    protected ResolveData data;
-    protected File cache;
-    protected WharfCacheManager cacheManager;
-    protected File repoTestRoot;
 
-    protected DownloadOptions downloadOptions() {
-        return new DownloadOptions();
+    protected IvySettingsTestHolder defaultSettings;
+
+    protected class IvySettingsTestHolder {
+        protected IvySettings settings;
+        protected ResolveEngine engine;
+        protected ResolveData data;
+        protected WharfCacheManager cacheManager;
+
+        protected void init(File baseDir) {
+            settings = new IvySettings();
+            settings.setBaseDir(baseDir);
+            settings.setDefaultCache(cacheFolder);
+            cacheManager = WharfCacheManager.newInstance(settings);
+            settings.setDefaultRepositoryCacheManager(cacheManager);
+            engine = new ResolveEngine(settings, new EventManager(), new SortEngine(settings));
+            data = new ResolveData(engine, new ResolveOptions());
+        }
+
     }
+
+    protected File cacheFolder;
+    protected File repoTestRoot;
 
     @Before
     public void setUp() throws Exception {
-        settings = new IvySettings();
-        settings.setBaseDir(new File(".").getCanonicalFile());
-        repoTestRoot = new File(settings.getBaseDir(), SRC_TEST_REPOSITORIES);
+        // Find the baseDir based on where test repositories are located
+        File baseDir = new File(".").getCanonicalFile();
+        repoTestRoot = new File(baseDir, SRC_TEST_REPOSITORIES);
         if (!repoTestRoot.exists()) {
-            settings.setBaseDir(new File(settings.getBaseDir(), "wharf-core"));
-            repoTestRoot = new File(settings.getBaseDir(), SRC_TEST_REPOSITORIES);
+            baseDir = new File(baseDir, "wharf-core");
+            repoTestRoot = new File(baseDir, SRC_TEST_REPOSITORIES);
         }
         assertTrue(repoTestRoot.exists());
-        settings.setDefaultRepositoryCacheManager(new WharfCacheManager());
-        engine = new ResolveEngine(settings, new EventManager(), new SortEngine(settings));
-        cache = new File(settings.getBaseDir(), "build/test/cache");
-        deleteCacheFolder();
-        data = new ResolveData(engine, new ResolveOptions());
-        cache.mkdirs();
-        settings.setDefaultCache(cache);
-        cacheManager = (WharfCacheManager) settings.getDefaultRepositoryCacheManager();
-        cacheManager.setSettings(settings);
+
+        // Create empty test cache folder
+        cacheFolder = new File(baseDir, "build/test/cache");
+        deleteCacheFolder(cacheFolder);
+        cacheFolder.mkdirs();
+
+        // Configure the ivy settings
+        defaultSettings = new IvySettingsTestHolder();
+        defaultSettings.init(baseDir);
         setupLastModified();
+    }
+
+    protected IvySettingsTestHolder createNewSettings() {
+        IvySettingsTestHolder holder = new IvySettingsTestHolder();
+        holder.init(defaultSettings.settings.getBaseDir());
+        return holder;
     }
 
     public String getIvyPattern() {
         return repoTestRoot + FS + REL_IVY_PATTERN;
     }
 
-    private void deleteCacheFolder() {
-        if (cache.exists()) {
+    public static void deleteCacheFolder(File toDelete) {
+        if (toDelete.exists()) {
             // First delete the symlinks then the filestore
-            File[] files = cache.listFiles();
+            File[] files = toDelete.listFiles();
             for (File file : files) {
                 if (!"filestore".equals(file.getName())) {
                     assertTrue("Could not delete " + file.getAbsolutePath(), deleteFile(file));
                 }
             }
-            assertTrue("Could not delete " + cache.getAbsolutePath(), deleteFile(cache));
+            assertTrue("Could not delete " + toDelete.getAbsolutePath(), deleteFile(toDelete));
         }
     }
 
-    private boolean deleteFolder(File del) {
+    private static boolean deleteFolder(File del) {
         for (File file : del.listFiles()) {
             if (!deleteFile(file)) {
                 return false;
@@ -104,7 +123,7 @@ public class AbstractDependencyResolverTest {
         return true;
     }
 
-    private boolean deleteFile(File del) {
+    private static boolean deleteFile(File del) {
         boolean result = true;
         if (del.isDirectory()) {
             result = deleteFolder(del);
@@ -123,19 +142,18 @@ public class AbstractDependencyResolverTest {
         // change important last modified dates cause svn doesn't keep them
         long minute = 60 * 1000;
         long time = new GregorianCalendar().getTimeInMillis() - (4 * minute);
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-1.0.xml").setLastModified(time);
+        new File(repoTestRoot, "1/org1/mod1.1/ivys/ivy-1.0.xml").setLastModified(time);
         time += minute;
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-1.0.1.xml").setLastModified(time);
+        new File(repoTestRoot, "1/org1/mod1.1/ivys/ivy-1.0.1.xml").setLastModified(time);
         time += minute;
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-1.1.xml").setLastModified(time);
+        new File(repoTestRoot, "1/org1/mod1.1/ivys/ivy-1.1.xml").setLastModified(time);
         time += minute;
-        new File("test/repositories/1/org1/mod1.1/ivys/ivy-2.0.xml").setLastModified(time);
+        new File(repoTestRoot, "1/org1/mod1.1/ivys/ivy-2.0.xml").setLastModified(time);
     }
 
     @After()
     public void tearDown() throws Exception {
-        deleteCacheFolder();
-//        CacheCleaner.deleteDir(cache);
+        deleteCacheFolder(cacheFolder);
     }
 
     protected DownloadOptions getDownloadOptions() {
@@ -143,7 +161,7 @@ public class AbstractDependencyResolverTest {
     }
 
     protected Collection<File> getFilesInFileStore() {
-        Collection<File> filestore = FileUtil.listAll(new File(cache, "filestore"), Collections.EMPTY_SET);
+        Collection<File> filestore = FileUtil.listAll(new File(cacheFolder, "filestore"), Collections.EMPTY_SET);
         Collection<File> filesInFileStore = new HashSet<File>();
         for (File file : filestore) {
             if (file.isFile()) {

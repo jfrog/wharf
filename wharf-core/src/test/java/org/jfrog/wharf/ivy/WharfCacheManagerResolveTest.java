@@ -53,15 +53,15 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testFixedRevision() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(getIvyPattern());
         resolver.addArtifactPattern(repoTestRoot.getAbsolutePath() + "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid,
-                false), data);
+                false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -99,25 +99,25 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testChecksum() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
 
         resolver.addIvyPattern(repoTestRoot + "/checksums/[module]/[artifact]-[revision].[ext]");
         resolver.addArtifactPattern(repoTestRoot + "/checksums/[module]/[artifact]-[revision].[ext]");
 
         resolver.setChecksums("sha1, md5");
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("test", "allright", "1.0");
-        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
         assertEquals(4, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
 
         resolver.setChecksums("md5");
         mrid = ModuleRevisionId.newInstance("test", "badivycs", "1.0");
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNull(rmr);
         resolver.setChecksums("none");
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         dr = resolver.download(new Artifact[]{new DefaultArtifact(mrid, rmr.getPublicationDate(),
                 mrid.getName(), "jar", "jar")}, getDownloadOptions());
@@ -125,14 +125,14 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         resolver.setChecksums("md5");
         mrid = ModuleRevisionId.newInstance("test", "badartcs", "1.0");
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         dr = resolver.download(new Artifact[]{new DefaultArtifact(mrid, rmr.getPublicationDate(),
                 mrid.getName(), "jar", "jar")}, getDownloadOptions());
         assertEquals(1, dr.getArtifactsReports(DownloadStatus.FAILED).length);
 
         resolver.setChecksums("");
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         dr = resolver.download(new Artifact[]{new DefaultArtifact(mrid, rmr.getPublicationDate(),
                 mrid.getName(), "jar", "jar")}, getDownloadOptions());
@@ -143,8 +143,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testCheckModified() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(repoTestRoot + FS + "checkmodified" + FS + "ivy-[revision].xml");
@@ -155,7 +155,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         modify.setLastModified(pubdate.getTime());
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.0");
-        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -168,7 +168,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         // should not get the new version
         resolver.setCheckmodified(false);
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -176,7 +176,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         // should now get the new version
         resolver.setCheckmodified(true);
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -187,8 +187,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testNoRevision() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
         resolver.addIvyPattern(repoTestRoot + FS + "norevision" + FS
                 + "ivy-[module].xml");
@@ -206,16 +206,16 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         modify.setLastModified(pubdate.getTime());
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "latest.integration");
-        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(ModuleRevisionId.newInstance("org1", "mod1.1", "1.0"), rmr.getId());
         assertEquals(pubdate, rmr.getPublicationDate());
 
         Artifact[] artifacts = rmr.getDescriptor().getArtifacts("default");
-        WharfResolverMetadata wharfResolverMetadata = cacheManager.getResolverHandler().getResolver(resolver);
+        WharfResolverMetadata wharfResolverMetadata = defaultSettings.cacheManager.getResolverHandler().getResolver(resolver);
         artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolverMetadata.getId());
-        File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
+        File archiveFileInCache = defaultSettings.cacheManager.getArchiveFileInCache(artifacts[0]);
         resolver.download(artifacts, getDownloadOptions());
         assertTrue(archiveFileInCache.exists());
         BufferedReader r = new BufferedReader(new FileReader(archiveFileInCache));
@@ -234,7 +234,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         // should get the new version even if checkModified is false, because we ask a
         // latest.integration
         resolver.setCheckmodified(false);
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(ModuleRevisionId.newInstance("org1", "mod1.1", "1.1"), rmr.getId());
@@ -242,7 +242,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         artifacts = rmr.getDescriptor().getArtifacts("default");
         artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolverMetadata.getId());
-        archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
+        archiveFileInCache = defaultSettings.cacheManager.getArchiveFileInCache(artifacts[0]);
 
         assertFalse(archiveFileInCache.exists());
 
@@ -259,8 +259,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testChanging() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(repoTestRoot + FS + "checkmodified" + FS
@@ -280,7 +280,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid,
-                false), data);
+                false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -288,9 +288,9 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         Artifact[] artifacts = rmr.getDescriptor().getArtifacts("default");
         resolver.download(artifacts, getDownloadOptions());
-        WharfResolverMetadata wharfResolverMetadata = cacheManager.getResolverHandler().getResolver(resolver);
+        WharfResolverMetadata wharfResolverMetadata = defaultSettings.cacheManager.getResolverHandler().getResolver(resolver);
         artifacts[0] = ArtifactMetadata.fillResolverId(artifacts[0], wharfResolverMetadata.getId());
-        File archiveFileInCache = cacheManager.getArchiveFileInCache(artifacts[0]);
+        File archiveFileInCache = defaultSettings.cacheManager.getArchiveFileInCache(artifacts[0]);
         assertTrue(archiveFileInCache.exists());
         BufferedReader r = new BufferedReader(new FileReader(archiveFileInCache));
         assertEquals("before", r.readLine());
@@ -308,7 +308,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         // should not get the new version: checkmodified is false and dependency is not told to be a
         // changing one
         resolver.setCheckmodified(false);
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -321,7 +321,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         r.close();
 
         // should now get the new version cause we say it's a changing one
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false, true), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false, true), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -341,8 +341,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testRelativePath() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(getIvyPattern());
@@ -353,7 +353,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "2.0");
         ResolvedModuleRevision rmr = resolver
                 .getDependency(new DefaultDependencyDescriptor(ModuleRevisionId.newInstance("org1",
-                        "mod1.1", "latest.integration"), false), data);
+                        "mod1.1", "latest.integration"), false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -365,8 +365,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testFormattedLatestTime() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(getIvyPattern());
@@ -376,7 +376,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.1");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(
-                ModuleRevisionId.newInstance("org1", "mod1.1", "1+"), false), data);
+                ModuleRevisionId.newInstance("org1", "mod1.1", "1+"), false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -388,8 +388,8 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public void testFormattedLatestRevision() throws Exception {
         FileSystemResolver resolver = new FileSystemResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
         assertEquals("test", resolver.getName());
 
         resolver.addIvyPattern(getIvyPattern());
@@ -399,7 +399,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "1.1");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(
-                ModuleRevisionId.newInstance("org1", "mod1.1", "1+"), false), data);
+                ModuleRevisionId.newInstance("org1", "mod1.1", "1+"), false), defaultSettings.data);
         assertNotNull(rmr);
 
         assertEquals(mrid, rmr.getId());
@@ -413,7 +413,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         try {
             FileSystemResolver resolver = new FileSystemResolver();
             resolver.setName("test");
-            resolver.setSettings(settings);
+            resolver.setSettings(defaultSettings.settings);
             resolver.setTransactional("true");
 
             resolver.addArtifactPattern(
@@ -442,7 +442,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         try {
             FileSystemResolver resolver = new FileSystemResolver();
             resolver.setName("test");
-            resolver.setSettings(settings);
+            resolver.setSettings(defaultSettings.settings);
             resolver.setTransactional("true");
 
             // the two patterns are inconsistent and thus not supported for transactions
@@ -472,7 +472,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
         try {
             FileSystemResolver resolver = new FileSystemResolver();
             resolver.setName("test");
-            resolver.setSettings(settings);
+            resolver.setSettings(defaultSettings.settings);
             resolver.setTransactional("true");
 
             resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]");

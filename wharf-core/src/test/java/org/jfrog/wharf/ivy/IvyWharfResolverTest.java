@@ -25,7 +25,6 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
-import org.apache.ivy.plugins.repository.file.FileRepository;
 import org.jfrog.wharf.ivy.resolver.IvyWharfResolver;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,8 +48,8 @@ public class IvyWharfResolverTest extends AbstractDependencyResolverTest {
     public void testBasicWharfResolver() throws Exception {
         IvyWharfResolver resolver = new IvyWharfResolver();
         resolver.setName("test");
-        resolver.setSettings(settings);
-        settings.addResolver(resolver);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
 
         File sourceDir = new File(repoTestRoot, "checksums");
 
@@ -60,7 +59,7 @@ public class IvyWharfResolverTest extends AbstractDependencyResolverTest {
         resolver.setArtpattern("[module]/[artifact]-[revision].[ext]");
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("test", "allright", "1.0");
-        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
         assertEquals(4, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
@@ -70,11 +69,11 @@ public class IvyWharfResolverTest extends AbstractDependencyResolverTest {
         assertEquals(2, filesInFileStore.size());
 
         mrid = ModuleRevisionId.newInstance("test", "badivycs", "1.0");
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNull(rmr);
 
         mrid = ModuleRevisionId.newInstance("test", "badartcs", "1.0");
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), data);
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         dr = resolver.download(new Artifact[]{new DefaultArtifact(mrid, rmr.getPublicationDate(),
                 mrid.getName(), "jar", "jar")}, getDownloadOptions());

@@ -20,12 +20,7 @@ package org.jfrog.wharf.ivy.cache;
 
 
 import org.apache.ivy.core.IvyPatternHelper;
-import org.apache.ivy.core.cache.ArtifactOrigin;
-import org.apache.ivy.core.cache.CacheDownloadOptions;
-import org.apache.ivy.core.cache.CacheMetadataOptions;
-import org.apache.ivy.core.cache.DownloadListener;
-import org.apache.ivy.core.cache.ModuleDescriptorWriter;
-import org.apache.ivy.core.cache.RepositoryCacheManager;
+import org.apache.ivy.core.cache.*;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
@@ -38,11 +33,7 @@ import org.apache.ivy.core.report.MetadataArtifactDownloadReport;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
-import org.apache.ivy.plugins.matcher.ExactPatternMatcher;
-import org.apache.ivy.plugins.matcher.MapMatcher;
-import org.apache.ivy.plugins.matcher.Matcher;
-import org.apache.ivy.plugins.matcher.NoMatcher;
-import org.apache.ivy.plugins.matcher.PatternMatcher;
+import org.apache.ivy.plugins.matcher.*;
 import org.apache.ivy.plugins.namespace.NameSpaceHelper;
 import org.apache.ivy.plugins.parser.ModuleDescriptorParser;
 import org.apache.ivy.plugins.parser.ModuleDescriptorParserRegistry;
@@ -62,7 +53,6 @@ import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
-import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
@@ -107,16 +97,23 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     private CacheMetadataHandler metadataHandler;
 
-    public WharfCacheManager() {
+    public static WharfCacheManager newInstance(IvySettings ivySettings) {
+        return newInstance(ivySettings, null, null);
     }
 
-    /**
-     * Used by Gradle to initialize the cache manager, Ivy will call setSettings after setting the baseDir
-     */
-    public WharfCacheManager(String name, IvySettings settings, File basedir) {
-        setName(name);
-        setBasedir(basedir);
-        setSettings(settings);
+    public static WharfCacheManager newInstance(IvySettings ivySettings, String name, File baseDir) {
+        WharfCacheManager result = new WharfCacheManager();
+        if (name == null) {
+            result.setName("wharf-cache");
+        } else {
+            result.setName(name);
+        }
+        result.setBasedir(baseDir);
+        result.setSettings(ivySettings);
+        return result;
+    }
+
+    public WharfCacheManager() {
     }
 
     public IvySettings getSettings() {
@@ -126,20 +123,24 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     @Override
     public void setSettings(IvySettings settings) {
         this.settings = settings;
-        getMetadataHandler().setSettings(settings);
-        getResolverHandler().setSettings(settings);
+        settingsChanged();
+    }
+
+    private void settingsChanged() {
+        metadataHandler = null;
+        resolverHandler = null;
     }
 
     public CacheMetadataHandler getMetadataHandler() {
         if (metadataHandler == null) {
-            metadataHandler = new CacheMetadataHandler(getBasedir());
+            metadataHandler = new CacheMetadataHandler(getBasedir(), settings);
         }
         return metadataHandler;
     }
 
     public ResolverHandler getResolverHandler() {
         if (resolverHandler == null) {
-            resolverHandler = new ResolverHandler(getBasedir());
+            resolverHandler = new ResolverHandler(getBasedir(), settings);
         }
         return resolverHandler;
     }
@@ -153,13 +154,14 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     public File getBasedir() {
         if (basedir == null) {
-            basedir = settings.getDefaultRepositoryCacheBasedir();
+            return settings.getDefaultRepositoryCacheBasedir();
         }
         return basedir;
     }
 
     public void setBasedir(File cache) {
         this.basedir = cache;
+        settingsChanged();
     }
 
     public long getDefaultTTL() {
@@ -365,38 +367,24 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     /**
      * Saves the information of which resolver was used to resolve a md, so that this info can be retrieve later (even
-     * after a jvm restart) by getSavedResolverName(ModuleDescriptor md)
-     *
-     * @param md   the module descriptor resolved
-     * @param name resolver name
-     */
-    private void saveResolver(ModuleDescriptor md, DependencyResolver dependencyResolver) {
-        // should always be called with a lock on module metadata artifact
-        getResolverHandler().getResolver(dependencyResolver);
-    }
-
-    /**
-     * Saves the information of which resolver was used to resolve a md, so that this info can be retrieve later (even
      * after a jvm restart) by getSavedArtResolverName(ModuleDescriptor md)
      *
-     * @param md   the module descriptor resolved
-     * @param name artifact resolver name
+     * @param md                   the module descriptor resolved
+     * @param metadataResolverName the name of the resolver in ivy settings which found the module descriptor
+     * @param artifactResolverName the name of the resolver in ivy settings that found the artifact
      */
     @Override
     public void saveResolvers(ModuleDescriptor md, String metadataResolverName, String artifactResolverName) {
-        ModuleRevisionId mrid = md.getResolvedModuleRevisionId();
-        if (!getMetadataHandler().lockMetadataArtifact(mrid)) {
-            Message.error("impossible to acquire lock for " + mrid);
-            return;
-        }
-        try {
-            DependencyResolver resolver = settings.getResolver(artifactResolverName);
-            if (resolver == null) {
-                resolver = settings.getResolver(md.getModuleRevisionId());
-            }
+        // In Wharf getting a resolver automatically saves it...
+        DependencyResolver resolver = settings.getResolver(metadataResolverName);
+        if (resolver != null) {
             resolverHandler.getResolver(resolver);
-        } finally {
-            getMetadataHandler().unlockMetadataArtifact(mrid);
+        }
+        if (!metadataResolverName.equals(artifactResolverName)) {
+            resolver = settings.getResolver(artifactResolverName);
+            if (resolver != null) {
+                resolverHandler.getResolver(resolver);
+            }
         }
     }
 
@@ -1105,7 +1093,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 backup = new File(dest.getAbsolutePath() + ".backup");
                 FileUtil.copy(dest, backup, null, true);
             }
-          /*  if (!(resource instanceof WharfUrlResource)) {
+            /*  if (!(resource instanceof WharfUrlResource)) {
                 resource = new WharfUrlResource(resource);
             }*/
             delegate.download(artifact, resource, dest);

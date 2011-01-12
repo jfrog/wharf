@@ -18,9 +18,9 @@
 
 package org.jfrog.wharf.marahsller.jackson;
 
+import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
 import org.jfrog.wharf.ivy.marshall.jackson.WharfJacksonResolverMarshallerImpl;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
-import org.jfrog.wharf.util.CacheCleaner;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,7 +46,7 @@ public class WharfJacksonResolverMarshallerTest {
 
     @After
     public void tearDown() {
-        CacheCleaner.deleteDir(cacheDir);
+        AbstractDependencyResolverTest.deleteCacheFolder(cacheDir);
     }
 
     @Test

@@ -101,7 +101,7 @@ public class WharfCacheManagerArtifactLockTest {
     }
 
     private RepositoryCacheManager newCacheManager(IvySettings settings) {
-        WharfCacheManager cacheManager = new WharfCacheManager("cache", settings, cache);
+        WharfCacheManager cacheManager = WharfCacheManager.newInstance(settings, "cache", cache);
         cacheManager.getMetadataHandler().setLockStrategy(new ArtifactLockStrategy());
         return cacheManager;
     }

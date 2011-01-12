@@ -19,7 +19,6 @@
 package org.jfrog.wharf.ivy.cache;
 
 import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
@@ -32,22 +31,24 @@ import java.util.*;
 /**
  * @author Tomer Cohen
  */
-public class ResolverHandler implements IvySettingsAware {
+public class ResolverHandler {
 
     /**
      * This is the directory where you have the right to put all of the needed files for the handler. Default is
      * cacheDir/.wharf
      */
     private final File baseDir;
+    private final IvySettings settings;
+    private final Map<String, WharfResolverMetadata> resolvers;
+    private final Map<Integer, WharfResolverMetadata> resolverFromDependencyResolverHash;
+    private final WharfResolverMarshaller wharfResolverMarshaller;
 
-    private final Map<String, WharfResolverMetadata> resolvers = new HashMap<String, WharfResolverMetadata>();
-    private final Map<Integer, WharfResolverMetadata> resolverFromDependencyResolverHash =
-            new HashMap<Integer, WharfResolverMetadata>();
-    private WharfResolverMarshaller wharfResolverMarshaller = MarshallerFactory.createWharfResolverMarshaller();
-    private IvySettings settings;
-
-    public ResolverHandler(File baseDir) {
+    public ResolverHandler(File baseDir, IvySettings settings) {
         this.baseDir = baseDir;
+        this.settings = settings;
+        this.resolvers = new HashMap<String, WharfResolverMetadata>();
+        this.resolverFromDependencyResolverHash = new HashMap<Integer, WharfResolverMetadata>();
+        this.wharfResolverMarshaller = MarshallerFactory.createWharfResolverMarshaller();
         // populate the set of resolvers from the baseDir/resolvers.json file
         Set<WharfResolverMetadata> resolverMetadataIds = wharfResolverMarshaller.getWharfMetadatas(baseDir);
         for (WharfResolverMetadata wharfResolverMetadata : resolverMetadataIds) {
@@ -75,11 +76,6 @@ public class ResolverHandler implements IvySettingsAware {
         return wharfResolverMetadata;
     }
 
-    public void cleanResolvers() {
-        resolvers.clear();
-        saveCacheResolverFile();
-    }
-
     /**
      * @return set of all resolvers Ids ever used in this cache
      */
@@ -93,11 +89,6 @@ public class ResolverHandler implements IvySettingsAware {
 
     public void saveCacheResolverFile() {
         wharfResolverMarshaller.save(baseDir, new HashSet<WharfResolverMetadata>(getAllResolvers()));
-    }
-
-    @Override
-    public void setSettings(IvySettings settings) {
-        this.settings = settings;
     }
 
     public boolean isActiveResolver(String resolverId) {
