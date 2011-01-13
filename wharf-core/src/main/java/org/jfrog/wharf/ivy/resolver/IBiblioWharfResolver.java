@@ -131,10 +131,9 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
             metadata = new ModuleRevisionMetadata();
         }
         updateCachePropertiesToCurrentTime(metadata);
-        Long lastResolvedTime = getLastResolvedTime(metadata);
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
-        if (snapshotTimeout.isCacheTimedOut(lastResolvedTime)) {
+        if (snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
             setChangingPattern(".*-SNAPSHOT");
             return null;
         } else {
