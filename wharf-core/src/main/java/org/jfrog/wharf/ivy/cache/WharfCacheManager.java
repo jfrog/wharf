@@ -20,7 +20,12 @@ package org.jfrog.wharf.ivy.cache;
 
 
 import org.apache.ivy.core.IvyPatternHelper;
-import org.apache.ivy.core.cache.*;
+import org.apache.ivy.core.cache.ArtifactOrigin;
+import org.apache.ivy.core.cache.CacheDownloadOptions;
+import org.apache.ivy.core.cache.CacheMetadataOptions;
+import org.apache.ivy.core.cache.DownloadListener;
+import org.apache.ivy.core.cache.ModuleDescriptorWriter;
+import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
@@ -33,7 +38,11 @@ import org.apache.ivy.core.report.MetadataArtifactDownloadReport;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.IvySettingsAware;
-import org.apache.ivy.plugins.matcher.*;
+import org.apache.ivy.plugins.matcher.ExactPatternMatcher;
+import org.apache.ivy.plugins.matcher.MapMatcher;
+import org.apache.ivy.plugins.matcher.Matcher;
+import org.apache.ivy.plugins.matcher.NoMatcher;
+import org.apache.ivy.plugins.matcher.PatternMatcher;
 import org.apache.ivy.plugins.namespace.NameSpaceHelper;
 import org.apache.ivy.plugins.parser.ModuleDescriptorParser;
 import org.apache.ivy.plugins.parser.ModuleDescriptorParserRegistry;
@@ -378,12 +387,12 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         // In Wharf getting a resolver automatically saves it...
         DependencyResolver resolver = settings.getResolver(metadataResolverName);
         if (resolver != null) {
-            resolverHandler.getResolver(resolver);
+            getResolverHandler().getResolver(resolver);
         }
         if (!metadataResolverName.equals(artifactResolverName)) {
             resolver = settings.getResolver(artifactResolverName);
             if (resolver != null) {
-                resolverHandler.getResolver(resolver);
+                getResolverHandler().getResolver(resolver);
             }
         }
     }
