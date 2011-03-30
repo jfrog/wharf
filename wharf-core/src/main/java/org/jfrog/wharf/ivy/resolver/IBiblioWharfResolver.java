@@ -35,6 +35,8 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -160,6 +162,23 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
     private ModuleRevisionMetadata getCacheProperties(DependencyDescriptor dd, ResolvedModuleRevision moduleRevision) {
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         return cacheManager.getMetadataHandler().getModuleRevisionMetadata(moduleRevision.getId());
+    }
+
+    @Override
+    public void setRoot(String root) {
+        super.setRoot(root);
+
+        URI rootUri;
+        try {
+            rootUri = new URI(root);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+        if (rootUri.getScheme().equalsIgnoreCase("file")) {
+            setSnapshotTimeout(ALWAYS);
+        } else {
+            setSnapshotTimeout(DAILY);
+        }
     }
 
     public interface CacheTimeoutStrategy {
