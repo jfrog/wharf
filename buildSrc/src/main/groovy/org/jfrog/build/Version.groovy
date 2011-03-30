@@ -32,6 +32,7 @@ class Version {
     String versionNumber
     Date buildTime
     Boolean release = null
+    int indexOfSnapshot
 
     def Version(Project project) {
         this(project, null)
@@ -39,7 +40,11 @@ class Version {
 
     def Version(Project project, List<String> subProjects) {
         this.versionNumber = project.getProperty("${project.name}-version")
-        this.release = Boolean.valueOf(project.getProperty("${project.name}-release"))
+        this.release = true
+        if (versionNumber.contains('SNAPSHOT')) {
+            this.release = false
+            this.indexOfSnapshot = this.versionNumber.indexOf('SNAPSHOT')
+        }
         File timestampFile = new File(project.buildDir, 'timestamp.txt')
         if (timestampFile.isFile()) {
             boolean uptodate = true
@@ -70,8 +75,10 @@ class Version {
             timestampFile.createNewFile()
         }
         buildTime = new Date(timestampFile.lastModified())
-        if (!release)
+        if (!release) {
+            this.versionNumber = this.versionNumber.substring(0, indexOfSnapshot - 1)
             this.versionNumber += "-" + getTimestamp()
+        }
     }
 
     String toString() {
