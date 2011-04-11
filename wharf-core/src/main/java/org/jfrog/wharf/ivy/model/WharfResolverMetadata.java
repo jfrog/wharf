@@ -73,14 +73,26 @@ public class WharfResolverMetadata {
             List<String> patterns = patternsBasedResolver.getIvyPatterns();
             if (patterns.isEmpty()) {
                 this.ivyPattern = "";
-            } else {
+            } else if (patterns.size() == 1) {
                 this.ivyPattern = patterns.get(0);
+            } else {
+                StringBuilder builder = new StringBuilder();
+                for (String pattern : patterns) {
+                    builder.append(pattern).append(",");
+                }
+                this.ivyPattern = builder.toString();
             }
             patterns = patternsBasedResolver.getArtifactPatterns();
             if (patterns.isEmpty()) {
                 this.artifactPattern = "";
-            } else {
+            } else if (patterns.size() == 1) {
                 this.artifactPattern = patterns.get(0);
+            } else {
+                StringBuilder builder = new StringBuilder();
+                for (String pattern : patterns) {
+                    builder.append(pattern).append(",");
+                }
+                this.artifactPattern = builder.toString();
             }
         }
         // TODO: Find the user

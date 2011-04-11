@@ -26,6 +26,7 @@ import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.jfrog.wharf.ivy.resolver.IvyWharfResolver;
+import org.jfrog.wharf.ivy.resolver.UrlWharfResolver;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +38,7 @@ import static org.junit.Assert.*;
 /**
  * @author Tomer Cohen
  */
-public class IvyWharfResolverTest extends AbstractDependencyResolverTest {
+public class UrlWharfResolverTest extends AbstractDependencyResolverTest {
 
     @Before
     public void setupMockRepository() {
@@ -46,18 +47,16 @@ public class IvyWharfResolverTest extends AbstractDependencyResolverTest {
 
     @Test
     public void testBasicWharfResolver() throws Exception {
-        IvyWharfResolver resolver = new IvyWharfResolver();
+        UrlWharfResolver resolver = new UrlWharfResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
 
         File sourceDir = new File(repoTestRoot, "checksums");
 
-        resolver.setArtroot(sourceDir.toURI().toURL().toExternalForm());
-        resolver.setArtpattern("[module]/[artifact]-[revision].[ext]");
-
-        resolver.setIvyroot(sourceDir.toURI().toURL().toExternalForm());
-        resolver.setIvypattern("[module]/ivy-[revision].xml");
+        resolver.addIvyPattern(sourceDir.toURI().toURL().toExternalForm()+"/[module]/ivy-[revision].xml");
+        resolver.addArtifactPattern(sourceDir.toURI().toURL().toExternalForm()+"/[module]/[artifact]-[revision].[ext]");
+        resolver.addArtifactPattern(sourceDir.toURI().toURL().toExternalForm()+"/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]");
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("test", "allright", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
