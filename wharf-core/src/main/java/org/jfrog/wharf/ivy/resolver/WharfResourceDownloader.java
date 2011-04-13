@@ -50,8 +50,7 @@ public class WharfResourceDownloader implements ResourceDownloader {
             dest.delete();
         }
         File part = new File(dest.getAbsolutePath() + ".part");
-        if (resource.getName().equals(
-                String.valueOf(artifact.getUrl()))) {
+        if (resource.getName().equals(String.valueOf(artifact.getUrl()))) {
             //TODO: [by tc] in a wharf env this should not happen => throw exception
             if (part.getParentFile() != null) {
                 part.getParentFile().mkdirs();

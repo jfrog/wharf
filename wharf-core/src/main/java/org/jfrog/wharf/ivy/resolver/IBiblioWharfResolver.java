@@ -229,4 +229,35 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
             return true;
         }
     };
+
+    @Override
+    public int hashCode() {
+        int result = getName().hashCode();
+        result = 31 * result + getRoot().hashCode();
+        result = 31 * result + snapshotTimeout.hashCode();
+        result = 31 * result + getPattern().hashCode();
+        result = 31 * result + (isUsepoms() ? 1 : 0);
+        result = 31 * result + (isAlwaysCheckExactRevision() ? 1 : 0);
+        result = 31 * result + (isM2compatible() ? 1 : 0);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof IBiblioWharfResolver)) return false;
+
+        IBiblioWharfResolver that = (IBiblioWharfResolver) o;
+
+        if (!getName().equals(that.getName())
+                || !getRoot().equals(that.getRoot())
+                || !snapshotTimeout.equals(that.snapshotTimeout)
+                || !getPattern().equals(that.getPattern())
+                || isUsepoms() != that.isUsepoms()
+                || isUseMavenMetadata() != that.isUseMavenMetadata()
+                || isAlwaysCheckExactRevision() != that.isAlwaysCheckExactRevision()
+                || isM2compatible() != that.isM2compatible())
+            return false;
+        return true;
+    }
 }

@@ -20,6 +20,7 @@ package org.jfrog.wharf.ivy.handler;
 
 import org.apache.ivy.Ivy;
 import org.apache.ivy.util.ChecksumHelper;
+import org.apache.ivy.util.CopyProgressListener;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.url.BasicURLHandler;
@@ -31,16 +32,18 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.UnknownHostException;
+import java.net.*;
 
 /**
  * @author Tomer Cohen
  */
 public class WharfUrlHandler extends BasicURLHandler {
+
+    public static interface TraceCounter {
+        public void add(String query, int status);
+    }
+
+    public static TraceCounter tracer = null;
 
     private static final int BUFFER_SIZE = 64 * 1024;
     public static final WharfUrlInfo UNAVAILABLE = new WharfUrlInfo(false, 0, 0, "", "");
@@ -136,6 +139,54 @@ public class WharfUrlHandler extends BasicURLHandler {
             disconnect(con);
         }
         return UNAVAILABLE;
+    }
+
+    @Override
+    public void download(URL src, File dest, CopyProgressListener l) throws IOException {
+        // Install the IvyAuthenticator
+        if ("http".equals(src.getProtocol()) || "https".equals(src.getProtocol())) {
+            IvyAuthenticator.install();
+        }
+
+        URLConnection srcConn = null;
+        try {
+            src = normalizeToURL(src);
+            srcConn = src.openConnection();
+            srcConn.setRequestProperty("User-Agent", "Apache Ivy/" + Ivy.getIvyVersion());
+            srcConn.setRequestProperty("Accept-Encoding", "gzip,deflate");
+            if (srcConn instanceof HttpURLConnection) {
+                HttpURLConnection httpCon = (HttpURLConnection) srcConn;
+                if (!checkStatusCode(src, httpCon)) {
+                    throw new IOException(
+                            "The HTTP response code for " + src + " did not indicate a success."
+                                    + " See log for more detail.");
+                }
+            }
+
+            // do the download
+            InputStream inStream = getDecodingInputStream(srcConn.getContentEncoding(),
+                    srcConn.getInputStream());
+            FileUtil.copy(inStream, dest, l);
+
+            // check content length only if content was not encoded
+            if (srcConn.getContentEncoding() == null) {
+                int contentLength = srcConn.getContentLength();
+                if (contentLength != -1 && dest.length() != contentLength) {
+                    dest.delete();
+                    throw new IOException(
+                            "Downloaded file size doesn't match expected Content Length for " + src
+                                    + ". Please retry.");
+                }
+            }
+
+            // update modification date
+            long lastModified = srcConn.getLastModified();
+            if (lastModified > 0) {
+                dest.setLastModified(lastModified);
+            }
+        } finally {
+            disconnect(srcConn);
+        }
     }
 
     private String getSha1(URL url) throws IOException {
@@ -270,6 +321,9 @@ public class WharfUrlHandler extends BasicURLHandler {
 
     private boolean checkStatusCode(URL url, HttpURLConnection con) throws IOException {
         int status = con.getResponseCode();
+        if (tracer != null) {
+            tracer.add(con.getRequestMethod() + " " + url.toExternalForm(), status);
+        }
         if (status == HttpStatus.SC_OK) {
             return true;
         }

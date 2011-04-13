@@ -104,7 +104,8 @@ public class WharfUrlResource implements Resource {
     }
 
     private void init() {
-        WharfUrlHandler.WharfUrlInfo info = new WharfUrlHandler().getURLInfo(url);
+        WharfUrlHandler urlHandler = (WharfUrlHandler) URLHandlerRegistry.getDefault();
+        WharfUrlHandler.WharfUrlInfo info = urlHandler.getURLInfo(url);
         contentLength = info.getContentLength();
         lastModified = info.getLastModified();
         exists = info.isReachable();
@@ -155,5 +156,35 @@ public class WharfUrlResource implements Resource {
     @Override
     public InputStream openStream() throws IOException {
         return URLHandlerRegistry.getDefault().openStream(url);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof WharfUrlResource)) return false;
+
+        WharfUrlResource that = (WharfUrlResource) o;
+
+        if (contentLength != that.contentLength) return false;
+        if (exists != that.exists) return false;
+        if (init != that.init) return false;
+        if (lastModified != that.lastModified) return false;
+        if (md5 != null ? !md5.equals(that.md5) : that.md5 != null) return false;
+        if (sha1 != null ? !sha1.equals(that.sha1) : that.sha1 != null) return false;
+        if (!url.equals(that.url)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = url.hashCode();
+        result = 31 * result + (init ? 1 : 0);
+        result = 31 * result + (int) (lastModified ^ (lastModified >>> 32));
+        result = 31 * result + (int) (contentLength ^ (contentLength >>> 32));
+        result = 31 * result + (exists ? 1 : 0);
+        result = 31 * result + (sha1 != null ? sha1.hashCode() : 0);
+        result = 31 * result + (md5 != null ? md5.hashCode() : 0);
+        return result;
     }
 }

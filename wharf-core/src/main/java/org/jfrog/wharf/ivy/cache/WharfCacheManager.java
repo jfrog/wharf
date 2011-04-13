@@ -50,6 +50,9 @@ import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
+import org.apache.ivy.util.url.URLHandler;
+import org.apache.ivy.util.url.URLHandlerRegistry;
+import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -117,6 +120,12 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     }
 
     public WharfCacheManager() {
+        // Enforce WharfUrlHandler TODO: Remove ugly static in Ivy
+        URLHandler urlHandler = URLHandlerRegistry.getDefault();
+        if (!(urlHandler instanceof WharfUrlHandler)) {
+            urlHandler = new WharfUrlHandler();
+            URLHandlerRegistry.setDefault(urlHandler);
+        }
     }
 
     public IvySettings getSettings() {

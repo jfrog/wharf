@@ -25,12 +25,11 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
-import org.jfrog.wharf.ivy.resolver.IvyWharfResolver;
 import org.jfrog.wharf.ivy.resolver.UrlWharfResolver;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.util.Collection;
 
 import static org.junit.Assert.*;
@@ -40,23 +39,35 @@ import static org.junit.Assert.*;
  */
 public class UrlWharfResolverTest extends AbstractDependencyResolverTest {
 
-    @Before
-    public void setupMockRepository() {
+    public static final String RESOLVER_NAME = "test";
 
+    @Test
+    public void testUrlWharfResolver() throws Exception {
+        UrlWharfResolver resolver1 = setResolver();
+        UrlWharfResolver resolver2 = setResolver();
+        assertEquals(resolver1, resolver2);
+        assertEquals(resolver1.hashCode(), resolver2.hashCode());
+        resolver2.addArtifactPattern("toto");
+        assertNotSame(resolver1, resolver2);
+        assertNotSame(resolver1.hashCode(), resolver2.hashCode());
+    }
+
+    private UrlWharfResolver setResolver() throws MalformedURLException {
+        UrlWharfResolver resolver = new UrlWharfResolver();
+        resolver.setName(RESOLVER_NAME);
+        File sourceDir = new File(repoTestRoot, "checksums");
+        resolver.addIvyPattern(sourceDir.toURI().toURL().toExternalForm() + "/[module]/ivy-[revision].xml");
+        resolver.addArtifactPattern(sourceDir.toURI().toURL().toExternalForm() + "/[module]/[artifact]-[revision].[ext]");
+        resolver.addArtifactPattern(sourceDir.toURI().toURL().toExternalForm() + "/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]");
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
+        defaultSettings.settings.setDefaultResolver(RESOLVER_NAME);
+        return resolver;
     }
 
     @Test
     public void testBasicWharfResolver() throws Exception {
-        UrlWharfResolver resolver = new UrlWharfResolver();
-        resolver.setName("test");
-        resolver.setSettings(defaultSettings.settings);
-        defaultSettings.settings.addResolver(resolver);
-
-        File sourceDir = new File(repoTestRoot, "checksums");
-
-        resolver.addIvyPattern(sourceDir.toURI().toURL().toExternalForm()+"/[module]/ivy-[revision].xml");
-        resolver.addArtifactPattern(sourceDir.toURI().toURL().toExternalForm()+"/[module]/[artifact]-[revision].[ext]");
-        resolver.addArtifactPattern(sourceDir.toURI().toURL().toExternalForm()+"/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]");
+        UrlWharfResolver resolver = setResolver();
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("test", "allright", "1.0");
         ResolvedModuleRevision rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);

@@ -26,7 +26,6 @@ import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.jfrog.wharf.ivy.resolver.IvyWharfResolver;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -38,11 +37,6 @@ import static org.junit.Assert.*;
  * @author Tomer Cohen
  */
 public class IvyWharfResolverTest extends AbstractDependencyResolverTest {
-
-    @Before
-    public void setupMockRepository() {
-
-    }
 
     @Test
     public void testBasicWharfResolver() throws Exception {

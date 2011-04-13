@@ -38,6 +38,7 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author Tomer Cohen
@@ -75,7 +76,7 @@ public class UrlWharfResolver extends URLResolver implements WharfResolver {
 
     @Override
     protected ResolvedResource findResourceUsingPattern(ModuleRevisionId mrid, String pattern, Artifact artifact,
-            ResourceMDParser rmdparser, Date date) {
+                                                        ResourceMDParser rmdparser, Date date) {
         return super.findResourceUsingPattern(mrid, pattern, artifact, rmdparser, date);
     }
 
@@ -130,5 +131,47 @@ public class UrlWharfResolver extends URLResolver implements WharfResolver {
     @Override
     public ArtifactResourceResolver getArtifactResourceResolver() {
         return artifactResourceResolver;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getName().hashCode();
+        result = 31 * result + (isAlwaysCheckExactRevision() ? 1 : 0);
+        result = 31 * result + (isM2compatible() ? 1 : 0);
+        result = 31 * result + getIvyPatterns().hashCode();
+        result = 31 * result + getArtifactPatterns().hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UrlWharfResolver)) return false;
+
+        UrlWharfResolver that = (UrlWharfResolver) o;
+
+        if (!getName().equals(that.getName())
+                || isAlwaysCheckExactRevision() != that.isAlwaysCheckExactRevision()
+                || isM2compatible() != that.isM2compatible())
+            return false;
+        List myIvyPatterns = getIvyPatterns();
+        List myArtifactsPatterns = getArtifactPatterns();
+        List thatIvyPatterns = that.getIvyPatterns();
+        List thatArtifactsPatterns = that.getArtifactPatterns();
+        if (myIvyPatterns.size() != thatIvyPatterns.size()
+                || myArtifactsPatterns.size() != thatArtifactsPatterns.size()
+                || !listEquals(myIvyPatterns, thatIvyPatterns)
+                || !listEquals(myArtifactsPatterns, thatArtifactsPatterns))
+            return false;
+        return true;
+    }
+
+    private boolean listEquals(List myIvyPatterns, List thatIvyPatterns) {
+        for (int i = 0; i < myIvyPatterns.size(); i++) {
+            if (!thatIvyPatterns.get(i).equals(myIvyPatterns.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }
