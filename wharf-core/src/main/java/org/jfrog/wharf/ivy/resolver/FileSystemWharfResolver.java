@@ -5,12 +5,14 @@ import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
+import org.apache.ivy.plugins.repository.Repository;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.checksum.ChecksumType;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.util.WharfUtils;
@@ -18,41 +20,48 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.EnumSet;
 
 /**
  * @author Tomer Cohen
  */
 public class FileSystemWharfResolver extends FileSystemResolver implements WharfResolver {
 
-    private final WharfResourceDownloader downloader = new WharfResourceDownloader(this);
-    private final ArtifactResourceResolver artifactResourceResolver = new ArtifactResourceResolver() {
-        @Override
-        public ResolvedResource resolve(Artifact artifact) {
-            artifact = fromSystem(artifact);
-            return getArtifactRef(artifact, null);
-        }
-    };
-
     public FileSystemWharfResolver() {
-        //TODO: [by tc] support md5
-        super.setChecksums(WharfUtils.SHA1_ALGORITHM);
         WharfUtils.hackIvyBasicResolver(this);
-        setRepository(new WharfURLRepository());
+        // No checksum verification by default for filesystem
+        // File system can recalculate all checksums from the file itself
+        getWharfUrlRepository().noChecksumCheck();
+    }
+
+    @Override
+    public void setRepository(Repository repository) {
+        super.setRepository(repository);
+    }
+
+    @Override
+    public WharfURLRepository getWharfUrlRepository() {
+        return (WharfURLRepository) super.getRepository();
+    }
+
+    @Override
+    public Artifact fromSystem(Artifact artifact) {
+        return super.fromSystem(artifact);
     }
 
     @Override
     public void setChecksums(String checksums) {
-        throw new UnsupportedOperationException("Wharf resolvers enforce the usage of SHA1 checksums only!");
+        getWharfUrlRepository().setChecksums(checksums);
     }
 
     @Override
-    public ResourceDownloader getDownloader() {
-        return downloader;
+    public boolean supportsWrongSha1() {
+        return getWharfUrlRepository().supportsWrongSha1();
     }
 
     @Override
-    public ArtifactResourceResolver getArtifactResourceResolver() {
-        return artifactResourceResolver;
+    public String[] getChecksumAlgorithms() {
+        return getWharfUrlRepository().getChecksumAlgorithms();
     }
 
     @Override
@@ -82,7 +91,7 @@ public class FileSystemWharfResolver extends FileSystemResolver implements Wharf
     }
 
     @Override
-    protected ResolvedResource getArtifactRef(Artifact artifact, Date date) {
+    public ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
         return WharfUtils.convertToWharfResource(artifactRef);
     }

@@ -23,6 +23,7 @@ import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
+import org.apache.ivy.plugins.repository.Repository;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
@@ -45,30 +46,44 @@ import java.util.Date;
  */
 public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolver {
 
-    private final WharfResourceDownloader downloader = new WharfResourceDownloader(this);
-    private final ArtifactResourceResolver artifactResourceResolver = new ArtifactResourceResolver() {
-        @Override
-        public ResolvedResource resolve(Artifact artifact) {
-            artifact = fromSystem(artifact);
-            return getArtifactRef(artifact, null);
-        }
-    };
     protected CacheTimeoutStrategy snapshotTimeout = DAILY;
 
     public IBiblioWharfResolver() {
-        super.setChecksums(WharfUtils.SHA1_ALGORITHM);
         WharfUtils.hackIvyBasicResolver(this);
-        setRepository(new WharfURLRepository());
+    }
+
+    @Override
+    public void setRepository(Repository repository) {
+        super.setRepository(repository);
+    }
+
+    @Override
+    public WharfURLRepository getWharfUrlRepository() {
+        return (WharfURLRepository) super.getRepository();
+    }
+
+    @Override
+    public Artifact fromSystem(Artifact artifact) {
+        return super.fromSystem(artifact);
     }
 
     @Override
     public void setChecksums(String checksums) {
-        throw new UnsupportedOperationException("Wharf resolvers enforce the usage of SHA1 checksums only!");
+        getWharfUrlRepository().setChecksums(checksums);
     }
 
+    @Override
+    public boolean supportsWrongSha1() {
+        return getWharfUrlRepository().supportsWrongSha1();
+    }
 
     @Override
-    protected ResolvedResource getArtifactRef(Artifact artifact, Date date) {
+    public String[] getChecksumAlgorithms() {
+        return getWharfUrlRepository().getChecksumAlgorithms();
+    }
+
+    @Override
+    public ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
         return WharfUtils.convertToWharfResource(artifactRef);
     }
@@ -109,15 +124,15 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         return super.get(resource, dest);
     }
 
-    @Override
-    public ResourceDownloader getDownloader() {
-        return downloader;
-    }
-
-    @Override
-    public ArtifactResourceResolver getArtifactResourceResolver() {
-        return artifactResourceResolver;
-    }
+//    @Override
+//    public ResourceDownloader getDownloader() {
+//        return downloader;
+//    }
+//
+//    @Override
+//    public ArtifactResourceResolver getArtifactResourceResolver() {
+//        return artifactResourceResolver;
+//    }
 
     @Override
     protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
@@ -239,6 +254,7 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         result = 31 * result + (isUsepoms() ? 1 : 0);
         result = 31 * result + (isAlwaysCheckExactRevision() ? 1 : 0);
         result = 31 * result + (isM2compatible() ? 1 : 0);
+        result = 31 * result + getWharfUrlRepository().getChecksums().hashCode();
         return result;
     }
 
@@ -256,7 +272,8 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
                 || isUsepoms() != that.isUsepoms()
                 || isUseMavenMetadata() != that.isUseMavenMetadata()
                 || isAlwaysCheckExactRevision() != that.isAlwaysCheckExactRevision()
-                || isM2compatible() != that.isM2compatible())
+                || isM2compatible() != that.isM2compatible()
+                || !getWharfUrlRepository().getChecksums().equals(that.getWharfUrlRepository().getChecksums()))
             return false;
         return true;
     }

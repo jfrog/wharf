@@ -23,8 +23,15 @@ import org.apache.ivy.plugins.resolver.BasicResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
+import org.apache.ivy.util.url.URLHandler;
+import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.checksum.ChecksumType;
+import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
+import org.jfrog.wharf.ivy.repository.WharfArtifactResourceResolver;
+import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.resolver.WharfResolver;
+import org.jfrog.wharf.ivy.resolver.WharfResourceDownloader;
 import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 
 import java.io.BufferedReader;
@@ -64,13 +71,15 @@ public class WharfUtils {
 
     public static void hackIvyBasicResolver(WharfResolver wharfResolver) {
         try {
+            // Override the URLRepository
+            wharfResolver.setRepository(new WharfURLRepository(wharfResolver));
             // TODO: The following reflection can be removed once Ivy uses a getDownloader and getArtifactResourceResolver methods
             Field downloaderField = BasicResolver.class.getDeclaredField("downloader");
             downloaderField.setAccessible(true);
-            downloaderField.set(wharfResolver, wharfResolver.getDownloader());
+            downloaderField.set(wharfResolver, new WharfResourceDownloader(wharfResolver));
             Field artifactResourceResolverField = BasicResolver.class.getDeclaredField("artifactResourceResolver");
             artifactResourceResolverField.setAccessible(true);
-            artifactResourceResolverField.set(wharfResolver, wharfResolver.getArtifactResourceResolver());
+            artifactResourceResolverField.set(wharfResolver, new WharfArtifactResourceResolver(wharfResolver));
         } catch (Exception e) {
             throw new RuntimeException("Could not hack Ivy :(", e);
         }
@@ -84,26 +93,39 @@ public class WharfUtils {
         if (resource == null) {
             return resolvedResource;
         }
+        if (resource instanceof WharfUrlResource) {
+            return resolvedResource;
+        }
         return new ResolvedResource(new WharfUrlResource(resource), resolvedResource.getRevision());
+    }
+
+    public static WharfUrlHandler getWharfUrlHandler() {
+        // Enforce WharfUrlHandler TODO: Remove ugly static in Ivy
+        URLHandler urlHandler = URLHandlerRegistry.getDefault();
+        if (!(urlHandler instanceof WharfUrlHandler)) {
+            urlHandler = new WharfUrlHandler();
+            URLHandlerRegistry.setDefault(urlHandler);
+        }
+        return (WharfUrlHandler) urlHandler;
     }
 
     private enum OperatingSystem {
         OLD_WINDOWS {
             @Override
-            void copyCacheFile(File src, File dest) throws IOException {
-                FileUtil.copy(src, dest, new WharfCopyListener(), true);
+            void linkCacheFileToStorage(File storageFile, File cacheFile) throws IOException {
+                FileUtil.copy(storageFile, cacheFile, new WharfCopyListener(), true);
             }
         },
         NEW_WINDOWS {
             @Override
-            void copyCacheFile(File src, File dest) throws IOException {
-                WindowsUtils.windowsSymlink(src, dest, new WharfCopyListener(), true);
+            void linkCacheFileToStorage(File storageFile, File cacheFile) throws IOException {
+                WindowsUtils.windowsSymlink(storageFile, cacheFile, new WharfCopyListener(), true);
             }
         },
         OS_X, OTHER;
 
-        void copyCacheFile(File src, File dest) throws IOException {
-            FileUtil.symlink(src, dest, new WharfCopyListener(), true);
+        void linkCacheFileToStorage(File storageFile, File cacheFile) throws IOException {
+            FileUtil.symlink(storageFile, cacheFile, new WharfCopyListener(), true);
         }
     }
 
@@ -124,8 +146,8 @@ public class WharfUtils {
         }
     }
 
-    public static void copyCacheFile(File src, File dest) throws IOException {
-        OS.copyCacheFile(src, dest);
+    public static void linkCacheFileToStorage(File storageFile, File cacheFile) throws IOException {
+        OS.linkCacheFileToStorage(storageFile, cacheFile);
     }
 
 
@@ -193,46 +215,45 @@ public class WharfUtils {
             throw new IllegalArgumentException("The Wharf Resolver manage only WharfUrlResource");
         }
         WharfUrlResource wharfResource = (WharfUrlResource) resource;
+        WharfCacheManager cacheManager = (WharfCacheManager) wharfResolver.getRepositoryCacheManager();
         // First get the checksum for this resource
         String checksumValue = wharfResource.getSha1();
-        if (checksumValue == null) {
-            Resource csRes = resource.clone(resource.getName() + "." + WharfUtils.getChecksumAlgorithm());
-            File tempChecksum = File.createTempFile("temp", "." + WharfUtils.getChecksumAlgorithm());
-            // If no checksum found in HEAD request, download the actual .sha1 resource
-            // In non Artifactory server will do 2 queries HEAD + GET
-            wharfResolver.get(csRes, tempChecksum);
-            try {
-                checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
-            } finally {
-                FileUtil.forceDelete(tempChecksum);
-            }
+        File tempStorageFile = cacheManager.getTempStorageFile();
+        if (!tempStorageFile.getParentFile().exists()) {
+            tempStorageFile.getParentFile().mkdirs();
         }
-        if (checksumValue == null) {
-            // The Wharf system enforce the presence of checksums on the remote repo
-            throw new IOException(
-                    "invalid " + WharfUtils.getChecksumAlgorithm() + " checksum not found for " + resource.getName());
-        }
-        WharfCacheManager cacheManager = (WharfCacheManager) wharfResolver.getRepositoryCacheManager();
-        File storageFile = cacheManager.getStorageFile(checksumValue);
-        if (!storageFile.exists()) {
-            // Not in storage cache
-            if (!storageFile.getParentFile().exists()) {
-                storageFile.getParentFile().mkdirs();
+
+        try {
+            WharfURLRepository wharfUrlRepository = wharfResolver.getWharfUrlRepository();
+            if (checksumValue == null && wharfResolver.supportsWrongSha1()) {
+                wharfUrlRepository.get(wharfResource, tempStorageFile);
+                // Check with the actual sha1 now
+                checksumValue = wharfResource.getActual().get(ChecksumType.sha1);
             }
-            wharfResolver.get(resource, storageFile);
-            String downloadChecksum =
-                    ChecksumHelper.computeAsString(storageFile, WharfUtils.getChecksumAlgorithm()).trim()
-                            .toLowerCase(Locale.US);
-            if (!checksumValue.equals(downloadChecksum)) {
-                FileUtil.forceDelete(storageFile);
+            if (checksumValue == null) {
                 throw new IOException(
-                        "invalid " + WharfUtils.getChecksumAlgorithm() + ": expected=" + checksumValue + " computed="
-                                + downloadChecksum);
+                        "Checksum "+ChecksumType.sha1.alg()+" not found for " + resource.getName());
+            }
+            File storageFile = cacheManager.getStorageFile(checksumValue);
+            if (!storageFile.exists()) {
+                // Not in storage cache => download to temp if needed
+                if (!tempStorageFile.exists()) {
+                    wharfUrlRepository.get(wharfResource, tempStorageFile);
+                }
+                wharfUrlRepository.checkChecksums(wharfResource);
+                if (!storageFile.getParentFile().exists()) {
+                    storageFile.getParentFile().mkdirs();
+                }
+                tempStorageFile.renameTo(storageFile);
+            }
+            // If we get here, then the file was found in cache with the good checksum!
+            // Just need to link the storage to file to the final cache destination.
+            WharfUtils.linkCacheFileToStorage(storageFile, dest);
+            return dest.length();
+        } finally {
+            if (tempStorageFile.exists()) {
+                FileUtil.forceDelete(tempStorageFile);
             }
         }
-        // If we get here, then the file was found in cache with the good checksum! just need to copy it
-        // to the destination.
-        WharfUtils.copyCacheFile(storageFile, dest);
-        return dest.length();
     }
 }

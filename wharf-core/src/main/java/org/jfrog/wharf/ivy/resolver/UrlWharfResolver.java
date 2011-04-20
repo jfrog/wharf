@@ -24,6 +24,7 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
+import org.apache.ivy.plugins.repository.Repository;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.resolver.URLResolver;
@@ -45,31 +46,42 @@ import java.util.List;
  */
 public class UrlWharfResolver extends URLResolver implements WharfResolver {
 
-    private final WharfResourceDownloader downloader = new WharfResourceDownloader(this);
-
-    private final ArtifactResourceResolver artifactResourceResolver = new ArtifactResourceResolver() {
-        @Override
-        public ResolvedResource resolve(Artifact artifact) {
-            artifact = fromSystem(artifact);
-            return getArtifactRef(artifact, null);
-        }
-    };
-
     public UrlWharfResolver() {
-        //TODO: [by tc] support md5
-        super.setChecksums(WharfUtils.SHA1_ALGORITHM);
         WharfUtils.hackIvyBasicResolver(this);
-        setRepository(new WharfURLRepository());
     }
 
+    @Override
+    public void setRepository(Repository repository) {
+        super.setRepository(repository);
+    }
+
+    @Override
+    public WharfURLRepository getWharfUrlRepository() {
+        return (WharfURLRepository) super.getRepository();
+    }
+
+    @Override
+    public Artifact fromSystem(Artifact artifact) {
+        return super.fromSystem(artifact);
+    }
 
     @Override
     public void setChecksums(String checksums) {
-        throw new UnsupportedOperationException("Wharf resolvers enforce the usage of SHA1 checksums only!");
+        getWharfUrlRepository().setChecksums(checksums);
     }
 
     @Override
-    protected ResolvedResource getArtifactRef(Artifact artifact, Date date) {
+    public boolean supportsWrongSha1() {
+        return getWharfUrlRepository().supportsWrongSha1();
+    }
+
+    @Override
+    public String[] getChecksumAlgorithms() {
+        return getWharfUrlRepository().getChecksumAlgorithms();
+    }
+
+    @Override
+    public ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
         return WharfUtils.convertToWharfResource(artifactRef);
     }
@@ -124,16 +136,6 @@ public class UrlWharfResolver extends URLResolver implements WharfResolver {
     }
 
     @Override
-    public ResourceDownloader getDownloader() {
-        return downloader;
-    }
-
-    @Override
-    public ArtifactResourceResolver getArtifactResourceResolver() {
-        return artifactResourceResolver;
-    }
-
-    @Override
     public int hashCode() {
         int result = getName().hashCode();
         result = 31 * result + (isAlwaysCheckExactRevision() ? 1 : 0);
@@ -152,7 +154,8 @@ public class UrlWharfResolver extends URLResolver implements WharfResolver {
 
         if (!getName().equals(that.getName())
                 || isAlwaysCheckExactRevision() != that.isAlwaysCheckExactRevision()
-                || isM2compatible() != that.isM2compatible())
+                || isM2compatible() != that.isM2compatible()
+                || !getWharfUrlRepository().getChecksums().equals(that.getWharfUrlRepository().getChecksums()))
             return false;
         List myIvyPatterns = getIvyPatterns();
         List myArtifactsPatterns = getArtifactPatterns();

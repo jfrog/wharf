@@ -19,20 +19,26 @@
 package org.jfrog.wharf.ivy.handler;
 
 import org.apache.ivy.Ivy;
-import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.CopyProgressListener;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.url.BasicURLHandler;
 import org.apache.ivy.util.url.IvyAuthenticator;
 import org.apache.ivy.util.url.URLHandler;
+import org.jfrog.wharf.ivy.checksum.Checksum;
+import org.jfrog.wharf.ivy.checksum.ChecksumInputStream;
+import org.jfrog.wharf.ivy.checksum.ChecksumType;
+import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 import org.jfrog.wharf.ivy.util.WharfCopyListener;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.UnknownHostException;
 
 /**
  * @author Tomer Cohen
@@ -94,17 +100,17 @@ public class WharfUrlHandler extends BasicURLHandler {
                             } finally {
                                 FileUtil.forceDelete(tempFile);
                             }
-                            // get the checksum directly.
-                            sha1 = getSha1(url);
-                            md5 = getMd5(url);
+                            // get the checksum using extension to find file
+                            sha1 = getSha1WithExtension(url);
+                            md5 = getMd5WithExtension(url);
                         } else {
                             Message.debug("Sha1 tag found: " + sha1);
                             md5 = getMd5FromHeader(httpCon);
                         }
                     } else {
-                        //For non-artifactory ask for the sha1/md5 directly
-                        sha1 = getSha1(url);
-                        md5 = getMd5(url);
+                        //For non-artifactory ask for the sha1/md5 files
+                        sha1 = getSha1WithExtension(url);
+                        md5 = getMd5WithExtension(url);
                     }
                     return new WharfUrlInfo(true, httpCon.getContentLength(), con.getLastModified(), sha1, md5);
                 }
@@ -114,16 +120,8 @@ public class WharfUrlHandler extends BasicURLHandler {
                     return UNAVAILABLE;
                 } else {
                     URL fileUrl = con.getURL();
-                    File file = new File(fileUrl.toURI());
-                    // first try to get checksums directly from FS, if doesn't exist compute manually.
-                    String sha1 = getSha1(fileUrl);
-                    if (sha1 == null) {
-                        sha1 = WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "sha1"));
-                    }
-                    String md5 = getMd5(fileUrl);
-                    if (md5 == null) {
-                        md5 = WharfUtils.getCleanChecksum(ChecksumHelper.computeAsString(file, "md5"));
-                    }
+                    String sha1 = getSha1WithExtension(fileUrl);
+                    String md5 = getMd5WithExtension(fileUrl);
                     return new WharfUrlInfo(true, contentLength, con.getLastModified(), sha1, md5);
                 }
             }
@@ -133,21 +131,39 @@ public class WharfUrlHandler extends BasicURLHandler {
                     + "a proxy server that is not well configured.");
         } catch (IOException e) {
             Message.error("Server access Error: " + e.getMessage() + " url=" + url);
-        } catch (URISyntaxException e) {
-            Message.error("File access Error: " + e.getMessage() + " url=" + url);
         } finally {
             disconnect(con);
         }
         return UNAVAILABLE;
     }
 
+    public void download(WharfUrlResource res, File dest, CopyProgressListener l) throws IOException {
+        // On download always calculate all checksums
+        ChecksumType[] checksumTypes = ChecksumType.values();
+        Checksum[] checksums = new Checksum[checksumTypes.length];
+        int i = 0;
+        for (ChecksumType checksumType : checksumTypes) {
+            checksums[i] = new Checksum(checksumType);
+            i++;
+        }
+        checksums = internalDownload(res.getUrl(), dest, l, checksums);
+        for (Checksum checksum : checksums) {
+            res.getActual().put(checksum.getType(), checksum.getChecksum());
+        }
+    }
+
     @Override
     public void download(URL src, File dest, CopyProgressListener l) throws IOException {
+        internalDownload(src, dest, l);
+    }
+
+    private Checksum[] internalDownload(URL src, File dest, CopyProgressListener l, Checksum... checksums) throws IOException {
         // Install the IvyAuthenticator
         if ("http".equals(src.getProtocol()) || "https".equals(src.getProtocol())) {
             IvyAuthenticator.install();
         }
 
+        InputStream inStream = null;
         URLConnection srcConn = null;
         try {
             src = normalizeToURL(src);
@@ -164,8 +180,11 @@ public class WharfUrlHandler extends BasicURLHandler {
             }
 
             // do the download
-            InputStream inStream = getDecodingInputStream(srcConn.getContentEncoding(),
+            inStream = getDecodingInputStream(srcConn.getContentEncoding(),
                     srcConn.getInputStream());
+            if (checksums != null && checksums.length > 0) {
+                inStream = new ChecksumInputStream(inStream, checksums);
+            }
             FileUtil.copy(inStream, dest, l);
 
             // check content length only if content was not encoded
@@ -187,42 +206,35 @@ public class WharfUrlHandler extends BasicURLHandler {
         } finally {
             disconnect(srcConn);
         }
+        if (checksums != null && checksums.length > 0 && inStream instanceof ChecksumInputStream) {
+            return ((ChecksumInputStream) inStream).getChecksums();
+        }
+        return null;
     }
 
-    private String getSha1(URL url) throws IOException {
-        String sha1;
-        String checksumUrl = url.toExternalForm() + "." + WharfUtils.SHA1_ALGORITHM;
-        Message.debug("Retrieving " + WharfUtils.SHA1_ALGORITHM + " from: " + url.toExternalForm());
+    private String getSha1WithExtension(URL url) throws IOException {
+        return getChecksumFromExtraFile(ChecksumType.sha1, url);
+    }
+
+    private String getMd5WithExtension(URL url) throws IOException {
+        return getChecksumFromExtraFile(ChecksumType.md5, url);
+    }
+
+    private String getChecksumFromExtraFile(ChecksumType checksumType, URL url) throws IOException {
+        String checksumValue = null;
+        String checksumUrl = url.toExternalForm() + checksumType.ext();
+        Message.debug("Retrieving " + checksumType + " using: '" + checksumUrl + "'");
         URL newChecksumUrl = new URL(checksumUrl);
-        File tempChecksum = File.createTempFile("temp", "." + WharfUtils.SHA1_ALGORITHM);
+        File tempChecksum = File.createTempFile("temp", checksumType.ext());
         try {
             FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
-            sha1 = WharfUtils.getCleanChecksum(tempChecksum);
+            checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
         } catch (IOException e) {
-            Message.warn("SHA1 not found: " + e.getMessage());
-            return null;
+            Message.warn(checksumType.alg() + " not found at " + checksumUrl + ": " + e.getMessage());
         } finally {
             FileUtil.forceDelete(tempChecksum);
         }
-        return sha1;
-    }
-
-    private String getMd5(URL url) throws IOException {
-        String md5 = null;
-        String checksumUrl = url.toExternalForm() + "." + WharfUtils.MD5_ALGORITHM;
-        Message.debug("Retrieving " + WharfUtils.MD5_ALGORITHM + " from: " + url.toExternalForm());
-        URL newChecksumUrl = new URL(checksumUrl);
-        File tempChecksum = File.createTempFile("temp", "." + WharfUtils.MD5_ALGORITHM);
-        try {
-            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
-            md5 = WharfUtils.getCleanChecksum(tempChecksum);
-        } catch (IOException e) {
-            Message.warn("MD5 not found: " + e.getMessage());
-            return null;
-        } finally {
-            FileUtil.forceDelete(tempChecksum);
-        }
-        return md5;
+        return checksumValue;
     }
 
     public static class WharfUrlInfo extends URLInfo {

@@ -32,8 +32,6 @@ import java.io.IOException;
  */
 public class WharfResourceDownloader implements ResourceDownloader {
 
-    private URLRepository extartifactrep = new URLRepository(); // used only to download
-
     private final WharfResolver resolver;
 
     public WharfResourceDownloader(WharfResolver resolver) {
@@ -45,17 +43,14 @@ public class WharfResourceDownloader implements ResourceDownloader {
         if (!(resource instanceof WharfUrlResource)) {
             throw new IllegalArgumentException("The Wharf Resolver manage only WharfUrlResource");
         }
-        //TODO: [by tc] Don't delete before download, if this part file already exists, manage with a lock
+        //TODO: [by fs] The part is in the wrong place, there should be a part only in storage download not here
         if (dest.exists()) {
             dest.delete();
         }
         File part = new File(dest.getAbsolutePath() + ".part");
         if (resource.getName().equals(String.valueOf(artifact.getUrl()))) {
-            //TODO: [by tc] in a wharf env this should not happen => throw exception
-            if (part.getParentFile() != null) {
-                part.getParentFile().mkdirs();
-            }
-            extartifactrep.get(resource.getName(), part);
+            //TODO: [by tc] Check why in a wharf env this should not happen => throw exception
+            throw new IllegalStateException("Don't know what this means!");
         } else {
             resolver.getAndCheck(resource, part);
         }

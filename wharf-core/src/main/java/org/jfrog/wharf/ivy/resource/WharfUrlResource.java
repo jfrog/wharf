@@ -22,6 +22,7 @@ import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.file.FileResource;
 import org.apache.ivy.plugins.repository.url.URLResource;
 import org.apache.ivy.util.url.URLHandlerRegistry;
+import org.jfrog.wharf.ivy.checksum.ChecksumType;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.EnumMap;
 
 /**
  * @author Tomer Cohen
@@ -45,12 +47,14 @@ public class WharfUrlResource implements Resource {
 
     private boolean exists;
 
-    private String sha1;
+    private final EnumMap<ChecksumType, String> remote;
 
-    private String md5;
+    private final EnumMap<ChecksumType, String> actual;
 
     public WharfUrlResource(URL url) {
         this.url = url;
+        remote = new EnumMap<ChecksumType, String>(ChecksumType.class);
+        actual = new EnumMap<ChecksumType, String>(ChecksumType.class);
     }
 
     public WharfUrlResource(Resource resource) {
@@ -60,8 +64,12 @@ public class WharfUrlResource implements Resource {
             } catch (MalformedURLException e) {
                 throw new IllegalArgumentException("Malformed File URL", e);
             }
+            remote = new EnumMap<ChecksumType, String>(ChecksumType.class);
+            actual = new EnumMap<ChecksumType, String>(ChecksumType.class);
         } else if (resource instanceof URLResource) {
             url = ((URLResource) resource).getURL();
+            remote = new EnumMap<ChecksumType, String>(ChecksumType.class);
+            actual = new EnumMap<ChecksumType, String>(ChecksumType.class);
         } else if (resource instanceof WharfUrlResource) {
             WharfUrlResource wharfUrlResource = (WharfUrlResource) resource;
             this.url = wharfUrlResource.url;
@@ -69,8 +77,8 @@ public class WharfUrlResource implements Resource {
             this.lastModified = wharfUrlResource.lastModified;
             this.contentLength = wharfUrlResource.contentLength;
             this.exists = wharfUrlResource.exists;
-            this.sha1 = wharfUrlResource.sha1;
-            this.md5 = wharfUrlResource.md5;
+            this.remote = new EnumMap<ChecksumType, String>(wharfUrlResource.remote);
+            this.actual = new EnumMap<ChecksumType, String>(wharfUrlResource.actual);
         } else {
             throw new IllegalArgumentException("Wharf Downloader manage only URL and Files");
         }
@@ -104,13 +112,16 @@ public class WharfUrlResource implements Resource {
     }
 
     private void init() {
-        WharfUrlHandler urlHandler = (WharfUrlHandler) URLHandlerRegistry.getDefault();
-        WharfUrlHandler.WharfUrlInfo info = urlHandler.getURLInfo(url);
+        WharfUrlHandler.WharfUrlInfo info = WharfUtils.getWharfUrlHandler().getURLInfo(url);
         contentLength = info.getContentLength();
         lastModified = info.getLastModified();
         exists = info.isReachable();
-        sha1 = WharfUtils.getCleanChecksum(info.getSha1());
-        md5 = WharfUtils.getCleanChecksum(info.getMd5());
+        if (info.getSha1() != null) {
+            remote.put(ChecksumType.sha1,WharfUtils.getCleanChecksum(info.getSha1()));
+        }
+        if (info.getMd5() != null) {
+            remote.put(ChecksumType.md5, WharfUtils.getCleanChecksum(info.getMd5()));
+        }
         init = true;
     }
 
@@ -122,18 +133,22 @@ public class WharfUrlResource implements Resource {
         return contentLength;
     }
 
+    public URL getUrl() {
+        return url;
+    }
+
     public String getSha1() {
         if (!init) {
             init();
         }
-        return sha1;
+        return remote.get(ChecksumType.sha1);
     }
 
     public String getMd5() {
         if (!init) {
             init();
         }
-        return md5;
+        return remote.get(ChecksumType.md5);
     }
 
     @Override
@@ -158,6 +173,14 @@ public class WharfUrlResource implements Resource {
         return URLHandlerRegistry.getDefault().openStream(url);
     }
 
+    public EnumMap<ChecksumType, String> getRemote() {
+        return remote;
+    }
+
+    public EnumMap<ChecksumType, String> getActual() {
+        return actual;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -169,8 +192,8 @@ public class WharfUrlResource implements Resource {
         if (exists != that.exists) return false;
         if (init != that.init) return false;
         if (lastModified != that.lastModified) return false;
-        if (md5 != null ? !md5.equals(that.md5) : that.md5 != null) return false;
-        if (sha1 != null ? !sha1.equals(that.sha1) : that.sha1 != null) return false;
+        if (!remote.equals(that.remote)) return false;
+        if (!actual.equals(that.actual)) return false;
         if (!url.equals(that.url)) return false;
 
         return true;
@@ -183,8 +206,8 @@ public class WharfUrlResource implements Resource {
         result = 31 * result + (int) (lastModified ^ (lastModified >>> 32));
         result = 31 * result + (int) (contentLength ^ (contentLength >>> 32));
         result = 31 * result + (exists ? 1 : 0);
-        result = 31 * result + (sha1 != null ? sha1.hashCode() : 0);
-        result = 31 * result + (md5 != null ? md5.hashCode() : 0);
+        result = 31 * result + remote.hashCode();
+        result = 31 * result + actual.hashCode();
         return result;
     }
 }
