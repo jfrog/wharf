@@ -92,6 +92,7 @@ public class WharfURLRepository extends AbstractRepository {
             }
             res = new WharfUrlResource(url);
             resourcesCache.put(source, res);
+            resourcesCache.put(url.toExternalForm(), res);
         }
         return res;
     }
@@ -173,7 +174,7 @@ public class WharfURLRepository extends AbstractRepository {
             }
         }
         if (!oneGood) {
-            throw new IOException("Resource "+wharfUrlResource.toString()+" has a wrong checksum for "+checksums);
+            throw new IOException("Resource " + wharfUrlResource.toString() + " has a wrong checksum for " + checksums);
         }
     }
 

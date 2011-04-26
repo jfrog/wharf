@@ -112,17 +112,17 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         IBiblioWharfResolver resolver = setResolver(RJO_NAME, RJO_ROOT);
         fullDownloadAndCheck(resolver, true);
         myTracer.check();
-        assertEquals(33, myTracer.counter.size());
+        assertEquals(19, myTracer.counter.size());
         myTracer = new MyTracer(true);
         WharfUrlHandler.tracer = myTracer;
         IBiblioWharfResolver resolver2 = setResolver(RGO_NAME, RGO_ROOT);
         fullDownloadAndCheck(resolver2, true);
         myTracer.check();
-        assertEquals(18, myTracer.counter.size());
+        assertEquals(10, myTracer.counter.size());
         fullDownloadAndCheck(resolver, false);
-        assertEquals(18, myTracer.counter.size());
+        assertEquals(10, myTracer.counter.size());
         fullDownloadAndCheck(resolver2, false);
-        assertEquals(18, myTracer.counter.size());
+        assertEquals(10, myTracer.counter.size());
     }
 
     private IBiblioWharfResolver setResolver(String name, String root) {
@@ -138,11 +138,10 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
     private void fullDownloadAndCheck(IBiblioWharfResolver resolver, boolean shouldDownload) throws ParseException {
         downloadAndCheck(ModuleRevisionId.newInstance("org.antlr", "antlr", "3.1.3"), resolver, shouldDownload);
-        downloadAndCheck(ModuleRevisionId.newInstance("commons-lang", "commons-lang", "2.5"), resolver, shouldDownload);
         downloadAndCheck(ModuleRevisionId.newInstance("junit", "junit", "4.8.2"), resolver, shouldDownload);
 
         Collection<File> filesInFileStore = getFilesInFileStore();
-        assertEquals(15, filesInFileStore.size());
+        assertEquals(9, filesInFileStore.size());
     }
 
     private void downloadAndCheck(ModuleRevisionId mrid, IBiblioWharfResolver resolver, boolean shouldDownload) throws ParseException {

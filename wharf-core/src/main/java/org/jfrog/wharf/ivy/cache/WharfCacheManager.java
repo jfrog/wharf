@@ -60,6 +60,7 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
@@ -329,12 +330,12 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     public File getTempStorageFile() {
         long tempLong = generator.nextLong();
         if (tempLong < 0) tempLong = -tempLong;
-        return new File(getBasedir() + "/filestore/temp", ""+tempLong);
+        return new File(getBasedir() + "/filestore/temp", "" + tempLong);
     }
 
     public File getStorageFile(String checksum) {
         checksum = WharfUtils.getCleanChecksum(checksum);
-        return new File(getBasedir() + "/filestore", checksum.substring(0, 2) + "/" + checksum.substring(2, 4) + "/"
+        return new File(getBasedir() + "/filestore", checksum.substring(0, 3) + "/" + checksum.substring(3, 6) + "/"
                 + checksum);
     }
 
@@ -599,7 +600,9 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         @Override
         public ModuleDescriptor provideModule(ParserSettings ivySettings,
                                               File descriptorURL, boolean validate) throws ParseException, IOException {
-            return mdParser.parseDescriptor(settings, descriptorURL.toURI().toURL(), validate);
+            URL url = descriptorURL.toURI().toURL();
+            WharfUrlResource wharfUrlResource = new WharfUrlResource(url);
+            return mdParser.parseDescriptor(settings, url, wharfUrlResource, validate);
         }
     }
 
@@ -718,7 +721,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                 DependencyResolver callingResolver = null;
                 try {
                     if (resourceResolver instanceof WharfArtifactResourceResolver) {
-                        callingResolver = (DependencyResolver) ((WharfArtifactResourceResolver)resourceResolver).getResolver();
+                        callingResolver = (DependencyResolver) ((WharfArtifactResourceResolver) resourceResolver).getResolver();
                     } else {
                         Field field = resourceResolver.getClass().getDeclaredField("this$0");
                         field.setAccessible(true);

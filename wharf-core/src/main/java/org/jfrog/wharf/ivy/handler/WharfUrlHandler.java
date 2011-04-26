@@ -35,10 +35,7 @@ import org.jfrog.wharf.ivy.util.WharfUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.UnknownHostException;
+import java.net.*;
 
 /**
  * @author Tomer Cohen
@@ -79,8 +76,8 @@ public class WharfUrlHandler extends BasicURLHandler {
         try {
             url = normalizeToURL(url);
             con = url.openConnection();
-            con.setRequestProperty("User-Agent", "Wharf Ivy/" + Ivy.getIvyVersion());
             if (con instanceof HttpURLConnection) {
+                con.setRequestProperty("User-Agent", "Wharf Ivy/" + Ivy.getIvyVersion());
                 HttpURLConnection httpCon = (HttpURLConnection) con;
                 if (getRequestMethod() == URLHandler.REQUEST_METHOD_HEAD) {
                     httpCon.setRequestMethod("HEAD");
@@ -225,14 +222,22 @@ public class WharfUrlHandler extends BasicURLHandler {
         String checksumUrl = url.toExternalForm() + checksumType.ext();
         Message.debug("Retrieving " + checksumType + " using: '" + checksumUrl + "'");
         URL newChecksumUrl = new URL(checksumUrl);
-        File tempChecksum = File.createTempFile("temp", checksumType.ext());
-        try {
-            FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
-            checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
-        } catch (IOException e) {
-            Message.warn(checksumType.alg() + " not found at " + checksumUrl + ": " + e.getMessage());
-        } finally {
-            FileUtil.forceDelete(tempChecksum);
+        if ("file".equals(newChecksumUrl.getProtocol())) {
+            try {
+                checksumValue = WharfUtils.getCleanChecksum(new File(newChecksumUrl.toURI()));
+            } catch (URISyntaxException e) {
+                Message.debug(checksumType.alg() + " not found at " + checksumUrl + " due to: " + e.getMessage());
+            }
+        } else {
+            File tempChecksum = File.createTempFile("temp", checksumType.ext());
+            try {
+                FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
+                checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
+            } catch (IOException e) {
+                Message.debug(checksumType.alg() + " not found at " + checksumUrl + " due to: " + e.getMessage());
+            } finally {
+                FileUtil.forceDelete(tempChecksum);
+            }
         }
         return checksumValue;
     }

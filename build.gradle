@@ -38,6 +38,12 @@ subprojects {
     version = new Version(it)
     status = version.getStatus()
 
+    configurations {
+        published {
+            extendsFrom archives
+        }
+    }
+
     task printVersion {
         doFirst { println "Version of ${it.path} is $version with status $status" }
     }
@@ -48,7 +54,13 @@ subprojects {
     }
 
     artifacts {
-        archives sourceJar
+        published sourceJar
+    }
+
+    if (tasks.findByName('buildInfo')) {
+        buildInfo {
+            configuration = configurations.published
+        }
     }
 
     task versionProperties(type: WriteVersionProperties) {

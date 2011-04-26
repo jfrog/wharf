@@ -34,11 +34,7 @@ import org.jfrog.wharf.ivy.resolver.WharfResolver;
 import org.jfrog.wharf.ivy.resolver.WharfResourceDownloader;
 import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -152,6 +148,9 @@ public class WharfUtils {
 
 
     public static String getCleanChecksum(File checksumFile) throws IOException {
+        if (!checksumFile.canRead()) {
+            return null;
+        }
         String csFileContent = FileUtil.readEntirely(
                 new BufferedReader(new FileReader(checksumFile))).trim().toLowerCase(Locale.US);
         return getCleanChecksum(csFileContent);
@@ -232,7 +231,7 @@ public class WharfUtils {
             }
             if (checksumValue == null) {
                 throw new IOException(
-                        "Checksum "+ChecksumType.sha1.alg()+" not found for " + resource.getName());
+                        "Checksum " + ChecksumType.sha1.alg() + " not found for " + resource.getName());
             }
             File storageFile = cacheManager.getStorageFile(checksumValue);
             if (!storageFile.exists()) {
