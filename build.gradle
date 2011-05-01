@@ -39,27 +39,25 @@ subprojects {
     status = version.getStatus()
 
     configurations {
-        published {
-            extendsFrom archives
-        }
+        extraPublish
     }
 
     task printVersion {
         doFirst { println "Version of ${it.path} is $version with status $status" }
     }
 
-    task sourceJar(type: Jar, dependsOn: jar) {
+    task sourceJar(type: Jar) {
         classifier = 'sources'
         from sourceSets.main.java
     }
 
     artifacts {
-        published sourceJar
+        extraPublish sourceJar
     }
 
     if (tasks.findByName('buildInfo')) {
-        buildInfo {
-            configuration = configurations.published
+        buildInfo(dependsOn: build) {
+            publishConfigs(configurations.published, configurations.archives)
         }
     }
 
