@@ -18,17 +18,27 @@ logger.debug("Applying Artifactory Gradle Settings")
 
 addListener(new ArtifactoryGradleSettings())
 class ArtifactoryGradleSettings extends BuildAdapter implements BuildListener {
+    boolean ciBuild() {
+        return System.getenv('buildInfoConfig.propertiesFile') != null ||
+                System.getProperty('buildInfoConfig.propertiesFile') != null
+    }
 
     def void projectsLoaded(Gradle gradle) {
         Project root = gradle.getRootProject()
         if ('buildSrc' == root.name) return
-        String artifactoryRoot = 'http://repo.jfrog.org/artifactory'
+        String artifactoryRoot = 'http://repo.jfrog.org/artifactory/list'
         root.logger.debug("Applying Artifactory to project root ${root.name}")
         root.allprojects {
-            buildscript {
-                repositories {
-                    mavenRepo name: 'plugins-repo', urls: "$artifactoryRoot/gradle-plugins"
+            if (!ciBuild()) {
+                buildscript {
+                    repositories {
+                        mavenRepo name: 'plugins-repo', urls: "$artifactoryRoot/gradle-plugins-snapshots"
+                    }
+                    dependencies {
+                        classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.0.x-SNAPSHOT')
+                    }
                 }
+                apply plugin: 'artifactory'
             }
             repositories {
                 mavenRepo name: 'libs-repo', urls: "$artifactoryRoot/gradle"
