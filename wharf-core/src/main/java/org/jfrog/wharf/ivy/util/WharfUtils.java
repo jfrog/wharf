@@ -18,16 +18,22 @@
 
 package org.jfrog.wharf.ivy.util;
 
+import org.apache.ivy.core.cache.CacheMetadataOptions;
+import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
+import org.apache.ivy.core.resolve.ResolveData;
+import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.BasicResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
+import org.apache.ivy.util.Message;
 import org.apache.ivy.util.url.URLHandler;
 import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.checksum.ChecksumType;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
+import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.repository.WharfArtifactResourceResolver;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.resolver.WharfResolver;
@@ -103,6 +109,35 @@ public class WharfUtils {
             URLHandlerRegistry.setDefault(urlHandler);
         }
         return (WharfUrlHandler) urlHandler;
+    }
+
+    public static ResolvedModuleRevision findModuleInCache(WharfResolver wharfResolver, DependencyDescriptor dd, ResolveData data) {
+        WharfCacheManager cacheManager = (WharfCacheManager) wharfResolver.getRepositoryCacheManager();
+        // If check modified is true, make sure to clean the resource cache
+        CacheMetadataOptions cacheOptions = wharfResolver.getCacheOptions(data);
+        if (cacheOptions.isCheckmodified() != null && cacheOptions.isCheckmodified()) {
+            Message.verbose("don't use cache for " + dd + ": checkModified=true");
+            // TODO: Check if we can Remove this global flag
+            WharfURLRepository.setAlwaysCheck(true);
+            return null;
+        }
+        if (cacheManager.isChanging(dd, dd.getDependencyRevisionId(), cacheOptions)) {
+            Message.verbose("don't use cache for " + dd + ": changing=true");
+            // TODO: Check if we can Remove this global flag
+            WharfURLRepository.setAlwaysCheck(true);
+            return null;
+        }
+        ResolvedModuleRevision moduleRevision = wharfResolver.basicFindModuleInCache(dd, data, false);
+        if (moduleRevision != null) {
+            ModuleRevisionMetadata metadata = wharfResolver.getCacheProperties(moduleRevision.getId());
+            if (metadata == null) {
+                Message.debug("Dependency descriptor " + dd.getDependencyRevisionId() + " has no descriptor");
+                metadata = new ModuleRevisionMetadata();
+            }
+            metadata.latestResolvedTime = String.valueOf(System.currentTimeMillis());
+            cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
+        }
+        return moduleRevision;
     }
 
     private enum OperatingSystem {

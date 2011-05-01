@@ -1,6 +1,7 @@
 package org.jfrog.wharf.ivy.repository;
 
 
+import org.apache.ivy.core.IvyContext;
 import org.apache.ivy.plugins.repository.AbstractRepository;
 import org.apache.ivy.plugins.repository.RepositoryCopyProgressListener;
 import org.apache.ivy.plugins.repository.Resource;
@@ -24,6 +25,7 @@ import java.util.*;
  */
 public class WharfURLRepository extends AbstractRepository {
     private static final ApacheURLLister lister = new ApacheURLLister();
+    public static final String ALWAYS_CHECK_RESOURCES = "wharf.alwaysCheckResources";
 
     private final RepositoryCopyProgressListener progress;
     private final Map<String, WharfUrlResource> resourcesCache;
@@ -72,8 +74,29 @@ public class WharfURLRepository extends AbstractRepository {
         return result;
     }
 
-    public void setChecksums(String checksums) {
-        throw new UnsupportedOperationException("Wharf resolvers enforce the usage of checksums from type only!");
+    /**
+     * Fill the checksums algorithm that need to be verified to accept an artifact.
+     *
+     * @param checksumsList a comma separated list of checksum algorithms to use with this repository
+     */
+    public void setChecksums(String checksumsList) {
+        checksums.clear();
+        String[] checks = checksumsList.split(",");
+        for (String check : checks) {
+            String cs = check.trim();
+            if (!"".equals(cs) && !"none".equals(cs)) {
+                checksums.add(ChecksumType.valueOf(cs));
+            }
+        }
+    }
+
+    public static boolean isAlwaysCheck() {
+        Boolean alwaysCheck = (Boolean) IvyContext.getContext().get(ALWAYS_CHECK_RESOURCES);
+        return alwaysCheck != null && alwaysCheck;
+    }
+
+    public static void setAlwaysCheck(boolean alwaysCheck) {
+        IvyContext.getContext().set(ALWAYS_CHECK_RESOURCES, alwaysCheck);
     }
 
     @Override
@@ -83,7 +106,7 @@ public class WharfURLRepository extends AbstractRepository {
 
     public WharfUrlResource getWharfResource(String source) throws IOException {
         WharfUrlResource res = resourcesCache.get(source);
-        if (res == null) {
+        if (res == null || isAlwaysCheck()) {
             URL url;
             try {
                 url = new URL(source);
@@ -93,6 +116,9 @@ public class WharfURLRepository extends AbstractRepository {
             res = new WharfUrlResource(url);
             resourcesCache.put(source, res);
             resourcesCache.put(url.toExternalForm(), res);
+            if (isAlwaysCheck()) {
+                setAlwaysCheck(false);
+            }
         }
         return res;
     }
@@ -136,17 +162,25 @@ public class WharfURLRepository extends AbstractRepository {
                 }
                 return ret;
             }
-        } else if (parent.startsWith("file")) {
+        } else {
+            File file;
             String path;
-            try {
-                path = new URI(parent).getPath();
-            } catch (URISyntaxException e) {
-                IOException ioe = new IOException("Couldn't list content of '" + parent + "'");
-                ioe.initCause(e);
-                throw ioe;
+            if (parent.startsWith("file")) {
+                try {
+                    path = new URI(parent).getPath();
+                    file = new File(path);
+                } catch (URISyntaxException e) {
+                    IOException ioe = new IOException("Couldn't list content of '" + parent + "'");
+                    ioe.initCause(e);
+                    throw ioe;
+                }
+            } else {
+                file = new File(parent);
+                URI uri = file.toURI();
+                path = uri.getPath();
+                parent = uri.toURL().toExternalForm();
             }
 
-            File file = new File(path);
             if (file.exists() && file.isDirectory()) {
                 String[] files = file.list();
                 List ret = new ArrayList(files.length);
@@ -158,7 +192,6 @@ public class WharfURLRepository extends AbstractRepository {
             } else {
                 return Collections.EMPTY_LIST;
             }
-
         }
         return null;
     }

@@ -18,19 +18,16 @@
 
 package org.jfrog.wharf.ivy.resolver;
 
+import org.apache.ivy.core.cache.CacheMetadataOptions;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
-import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
 import org.apache.ivy.plugins.repository.Repository;
 import org.apache.ivy.plugins.repository.Resource;
-import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.resolver.IvyRepResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
-import org.apache.ivy.plugins.resolver.util.ResourceMDParser;
-import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
@@ -80,39 +77,36 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
     }
 
     @Override
+    public ResolvedModuleRevision basicFindModuleInCache(DependencyDescriptor dd, ResolveData data, boolean anyResolver) {
+        return super.findModuleInCache(dd, data, anyResolver);
+    }
+
+    @Override
+    protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
+        return WharfUtils.findModuleInCache(this, dd, data);
+    }
+
+    @Override
+    public CacheMetadataOptions getCacheOptions(ResolveData data) {
+        return super.getCacheOptions(data);
+    }
+
+    @Override
+    public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
+        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
+        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
+    }
+
+    @Override
     public ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);
         return WharfUtils.convertToWharfResource(artifactRef);
     }
 
     @Override
-    protected ResolvedResource findResourceUsingPattern(ModuleRevisionId mrid, String pattern, Artifact artifact,
-            ResourceMDParser rmdparser, Date date) {
-        return super.findResourceUsingPattern(mrid, pattern, artifact, rmdparser, date);
-    }
-
-    @Override
     public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
         ResolvedResource ivyFileRef = super.findIvyFileRef(dd, data);
         return WharfUtils.convertToWharfResource(ivyFileRef);
-    }
-
-
-    @Override
-    protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
-        ResolvedModuleRevision moduleRevision = super.findModuleInCache(dd, data);
-        if (moduleRevision == null) {
-            return null;
-        }
-        ModuleRevisionMetadata metadata = getCacheProperties(dd, moduleRevision);
-        if (metadata == null) {
-            Message.debug("Dependency descriptor " + dd.getDependencyRevisionId() + " has no descriptor");
-            metadata = new ModuleRevisionMetadata();
-        }
-        updateCachePropertiesToCurrentTime(metadata);
-        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
-        return moduleRevision;
     }
 
     @Override
@@ -125,18 +119,5 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         return super.get(resource, dest);
     }
 
-    private void updateCachePropertiesToCurrentTime(ModuleRevisionMetadata cacheProperties) {
-        cacheProperties.latestResolvedTime = String.valueOf(System.currentTimeMillis());
-    }
-
-    private Long getLastResolvedTime(ModuleRevisionMetadata cacheProperties) {
-        String lastResolvedProp = cacheProperties.latestResolvedTime;
-        Long lastResolvedTime = lastResolvedProp != null ? Long.parseLong(lastResolvedProp) : 0;
-        return lastResolvedTime;
-    }
-
-    private ModuleRevisionMetadata getCacheProperties(DependencyDescriptor dd, ResolvedModuleRevision moduleRevision) {
-        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(moduleRevision.getId());
-    }
+    // TODO: Equals and hashCode
 }

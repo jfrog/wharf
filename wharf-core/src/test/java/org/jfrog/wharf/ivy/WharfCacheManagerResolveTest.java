@@ -31,6 +31,7 @@ import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.FileUtil;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
+import org.jfrog.wharf.ivy.resolver.FileSystemWharfResolver;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -49,9 +50,14 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     public WharfCacheManagerResolveTest() {
     }
 
+    private FileSystemWharfResolver createFileSystemResolver() {
+        // TODO: Check also standard FS resolver with WharfCacheManager?
+        return new FileSystemWharfResolver();
+    }
+
     @Test
     public void testFixedRevision() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -97,7 +103,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testChecksum() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -141,7 +147,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testCheckModified() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -149,8 +155,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
         resolver.addIvyPattern(repoTestRoot + FS + "checkmodified" + FS + "ivy-[revision].xml");
         File modify = new File(repoTestRoot, "checkmodified/ivy-1.0.xml");
-        FileUtil.copy(new File(repoTestRoot, "checkmodified/ivy-1.0-before.xml"), modify, null,
-                true);
+        FileUtil.copy(new File(repoTestRoot, "checkmodified/ivy-1.0-before.xml"), modify, null, true);
         Date pubdate = new GregorianCalendar(2004, 10, 1, 11, 0, 0).getTime();
         modify.setLastModified(pubdate.getTime());
 
@@ -185,7 +190,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testNoRevision() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -257,7 +262,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testChanging() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -339,7 +344,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testRelativePath() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -363,7 +368,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testFormattedLatestTime() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -386,7 +391,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
 
     @Test
     public void testFormattedLatestRevision() throws Exception {
-        FileSystemResolver resolver = new FileSystemResolver();
+        FileSystemResolver resolver = createFileSystemResolver();
         resolver.setName("test");
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
@@ -411,7 +416,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     @Test
     public void testUnsupportedTransaction() throws Exception {
         try {
-            FileSystemResolver resolver = new FileSystemResolver();
+            FileSystemResolver resolver = createFileSystemResolver();
             resolver.setName("test");
             resolver.setSettings(defaultSettings.settings);
             resolver.setTransactional("true");
@@ -440,7 +445,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     @Test
     public void testUnsupportedTransaction2() throws Exception {
         try {
-            FileSystemResolver resolver = new FileSystemResolver();
+            FileSystemResolver resolver = createFileSystemResolver();
             resolver.setName("test");
             resolver.setSettings(defaultSettings.settings);
             resolver.setTransactional("true");
@@ -470,7 +475,7 @@ public class WharfCacheManagerResolveTest extends AbstractDependencyResolverTest
     @Test
     public void testUnsupportedTransaction3() throws Exception {
         try {
-            FileSystemResolver resolver = new FileSystemResolver();
+            FileSystemResolver resolver = createFileSystemResolver();
             resolver.setName("test");
             resolver.setSettings(defaultSettings.settings);
             resolver.setTransactional("true");

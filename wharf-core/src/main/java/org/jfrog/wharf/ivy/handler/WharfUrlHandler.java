@@ -135,26 +135,19 @@ public class WharfUrlHandler extends BasicURLHandler {
     }
 
     public void download(WharfUrlResource res, File dest, CopyProgressListener l) throws IOException {
-        // On download always calculate all checksums
-        ChecksumType[] checksumTypes = ChecksumType.values();
-        Checksum[] checksums = new Checksum[checksumTypes.length];
-        int i = 0;
-        for (ChecksumType checksumType : checksumTypes) {
-            checksums[i] = new Checksum(checksumType);
-            i++;
-        }
-        checksums = internalDownload(res.getUrl(), dest, l, checksums);
-        for (Checksum checksum : checksums) {
+        FileWithChecksumStreamHandler handler = new FileWithChecksumStreamHandler(dest, l);
+        internalDownload(res.getUrl(), handler);
+        for (Checksum checksum : handler.getChecksums()) {
             res.getActual().put(checksum.getType(), checksum.getChecksum());
         }
     }
 
     @Override
     public void download(URL src, File dest, CopyProgressListener l) throws IOException {
-        internalDownload(src, dest, l);
+        internalDownload(src, new FileStreamHandler(dest, l));
     }
 
-    private Checksum[] internalDownload(URL src, File dest, CopyProgressListener l, Checksum... checksums) throws IOException {
+    private void internalDownload(URL src, StreamHandler handler) throws IOException {
         // Install the IvyAuthenticator
         if ("http".equals(src.getProtocol()) || "https".equals(src.getProtocol())) {
             IvyAuthenticator.install();
@@ -177,20 +170,49 @@ public class WharfUrlHandler extends BasicURLHandler {
             }
 
             // do the download
-            inStream = getDecodingInputStream(srcConn.getContentEncoding(),
-                    srcConn.getInputStream());
-            if (checksums != null && checksums.length > 0) {
-                inStream = new ChecksumInputStream(inStream, checksums);
-            }
-            FileUtil.copy(inStream, dest, l);
+            inStream = getDecodingInputStream(srcConn.getContentEncoding(), srcConn.getInputStream());
+            handler.handleStream(srcConn, inStream);
+        } finally {
+            disconnect(srcConn);
+        }
+    }
+
+    static interface StreamHandler {
+        void handleStream(URLConnection srcConn, InputStream inStream) throws IOException;
+    }
+
+    static class StringStreamHandler implements StreamHandler {
+        String content;
+
+        @Override
+        public void handleStream(URLConnection srcConn, InputStream inStream) throws IOException {
+            content = FileUtil.readEntirely(inStream);
+        }
+
+        public String getContent() {
+            return content;
+        }
+    }
+
+    static class FileStreamHandler implements StreamHandler {
+        final File destFile;
+        final CopyProgressListener progressListener;
+
+        FileStreamHandler(File destFile, CopyProgressListener progressListener) {
+            this.destFile = destFile;
+            this.progressListener = progressListener;
+        }
+
+        public void handleStream(URLConnection srcConn, InputStream inStream) throws IOException {
+            FileUtil.copy(inStream, destFile, progressListener);
 
             // check content length only if content was not encoded
             if (srcConn.getContentEncoding() == null) {
                 int contentLength = srcConn.getContentLength();
-                if (contentLength != -1 && dest.length() != contentLength) {
-                    dest.delete();
+                if (contentLength != -1 && destFile.length() != contentLength) {
+                    destFile.delete();
                     throw new IOException(
-                            "Downloaded file size doesn't match expected Content Length for " + src
+                            "Downloaded file size doesn't match expected Content Length for " + srcConn.getURL()
                                     + ". Please retry.");
                 }
             }
@@ -198,15 +220,34 @@ public class WharfUrlHandler extends BasicURLHandler {
             // update modification date
             long lastModified = srcConn.getLastModified();
             if (lastModified > 0) {
-                dest.setLastModified(lastModified);
+                destFile.setLastModified(lastModified);
             }
-        } finally {
-            disconnect(srcConn);
         }
-        if (checksums != null && checksums.length > 0 && inStream instanceof ChecksumInputStream) {
-            return ((ChecksumInputStream) inStream).getChecksums();
+    }
+
+    static class FileWithChecksumStreamHandler extends FileStreamHandler {
+        private final Checksum[] checksums;
+
+        FileWithChecksumStreamHandler(File destFile, CopyProgressListener progressListener) {
+            super(destFile, progressListener);
+            // On download always calculate all checksums
+            ChecksumType[] checksumTypes = ChecksumType.values();
+            checksums = new Checksum[checksumTypes.length];
+            int i = 0;
+            for (ChecksumType checksumType : checksumTypes) {
+                checksums[i] = new Checksum(checksumType);
+                i++;
+            }
         }
-        return null;
+
+        @Override
+        public void handleStream(URLConnection srcConn, InputStream inStream) throws IOException {
+            super.handleStream(srcConn, new ChecksumInputStream(inStream, checksums));
+        }
+
+        public Checksum[] getChecksums() {
+            return checksums;
+        }
     }
 
     private String getSha1WithExtension(URL url) throws IOException {
@@ -229,14 +270,12 @@ public class WharfUrlHandler extends BasicURLHandler {
                 Message.debug(checksumType.alg() + " not found at " + checksumUrl + " due to: " + e.getMessage());
             }
         } else {
-            File tempChecksum = File.createTempFile("temp", checksumType.ext());
             try {
-                FileUtil.copy(newChecksumUrl, tempChecksum, new WharfCopyListener());
-                checksumValue = WharfUtils.getCleanChecksum(tempChecksum);
+                StringStreamHandler handler = new StringStreamHandler();
+                internalDownload(newChecksumUrl, handler);
+                checksumValue = WharfUtils.getCleanChecksum(handler.getContent());
             } catch (IOException e) {
                 Message.debug(checksumType.alg() + " not found at " + checksumUrl + " due to: " + e.getMessage());
-            } finally {
-                FileUtil.forceDelete(tempChecksum);
             }
         }
         return checksumValue;

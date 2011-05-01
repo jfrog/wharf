@@ -1058,7 +1058,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         return artifact.isMetadata() && artifact.getType().endsWith(".original");
     }
 
-    private boolean isChanging(
+    public boolean isChanging(
             DependencyDescriptor dd, ModuleRevisionId requestedRevisionId,
             CacheMetadataOptions options) {
         return dd.isChanging()

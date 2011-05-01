@@ -18,13 +18,17 @@
 
 package org.jfrog.wharf.ivy.resolver;
 
+import org.apache.ivy.core.cache.CacheMetadataOptions;
 import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
-import org.apache.ivy.plugins.repository.ArtifactResourceResolver;
+import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.core.resolve.ResolveData;
+import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.plugins.repository.Repository;
 import org.apache.ivy.plugins.repository.Resource;
-import org.apache.ivy.plugins.repository.ResourceDownloader;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
+import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 
 import java.io.File;
@@ -56,4 +60,10 @@ public interface WharfResolver {
     WharfURLRepository getWharfUrlRepository();
 
     String[] getChecksumAlgorithms();
+
+    ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid);
+
+    CacheMetadataOptions getCacheOptions(ResolveData data);
+
+    ResolvedModuleRevision basicFindModuleInCache(DependencyDescriptor dd, ResolveData data, boolean anyResolver);
 }
