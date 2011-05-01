@@ -56,7 +56,8 @@ subprojects {
     }
 
     if (tasks.findByName('buildInfo')) {
-        buildInfo(dependsOn: build) {
+        buildInfo {
+            dependsOn: build
             publishConfigs(configurations.extraPublish, configurations.archives)
         }
     }
