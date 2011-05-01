@@ -48,7 +48,7 @@ subprojects {
         doFirst { println "Version of ${it.path} is $version with status $status" }
     }
 
-    task sourceJar(type: Jar) {
+    task sourceJar(type: Jar, dependsOn: jar) {
         classifier = 'sources'
         from sourceSets.main.java
     }
