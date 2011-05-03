@@ -138,7 +138,7 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
     private void fullDownloadAndCheck(IBiblioWharfResolver resolver, boolean shouldDownload) throws ParseException {
         downloadAndCheck(ModuleRevisionId.newInstance("org.antlr", "antlr", "3.1.3"), resolver, shouldDownload);
-        downloadAndCheck(ModuleRevisionId.newInstance("junit", "junit", "4.8.2"), resolver, shouldDownload);
+        downloadAndCheck(ModuleRevisionId.newInstance("junit", "junit", "4.8"), resolver, shouldDownload);
 
         Collection<File> filesInFileStore = getFilesInFileStore();
         assertEquals(9, filesInFileStore.size());
