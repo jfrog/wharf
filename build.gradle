@@ -22,10 +22,15 @@ import org.jfrog.build.WriteVersionProperties
 // version of the root project does not matter
 version = '1'
 
+boolean ciBuild() {
+    return System.getenv('buildInfoConfig.propertiesFile') != null ||
+            System.getProperty('buildInfoConfig.propertiesFile') != null
+}
+
 allprojects {
     group = 'org.jfrog.wharf'
     apply plugin: 'idea'
-    if (!plugins.hasPlugin('artifactory')) {
+    if (!ciBuild()) {
         apply plugin: 'artifactory'
     }
 
