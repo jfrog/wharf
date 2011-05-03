@@ -103,7 +103,6 @@ set CMD_LINE_ARGS=%$
 set STARTER_MAIN_CLASS=org.gradle.wrapper.GradleWrapperMain
 set CLASSPATH=%DIRNAME%\gradle\wrapper\gradle-wrapper.jar
 set WRAPPER_PROPERTIES=%DIRNAME%\gradle\wrapper\gradle-wrapper.properties
-set REPO_INIT_SCRIPT=%DIRNAME%\buildSrc\repo-init.gradle
 set JAVA_EXE=%JAVA_HOME%\bin\java.exe
 
 set GRADLE_OPTS=%JAVA_OPTS% %GRADLE_OPTS% -Dorg.gradle.wrapper.properties="%WRAPPER_PROPERTIES%"

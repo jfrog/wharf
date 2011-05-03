@@ -43,7 +43,7 @@ artifactory {
     contextUrl = 'http://repo.jfrog.org/artifactory'
     projectPublish {
         publishConfigs('extraPublish', 'archives')
-        properties = ['build.status': "$it.project.status"]
+        properties = ['build.status': "$it.project.status".toString()]
     }
     resolve {
         repository {
