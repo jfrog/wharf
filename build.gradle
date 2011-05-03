@@ -25,9 +25,25 @@ version = '1'
 allprojects {
     group = 'org.jfrog.wharf'
     apply plugin: 'idea'
+    if (!plugins.hasPlugin('artifactory')) {
+        apply plugin: 'artifactory'
+    }
 
     ideaProject {
         javaVersion = '1.6'
+    }
+}
+
+artifactory {
+    contextUrl = 'http://repo.jfrog.org/artifactory'
+    projectPublish {
+        publishConfigs('extraPublish', 'archives')
+        properties = ['build.status': "$it.project.status"]
+    }
+    resolve {
+        repository {
+            repoKey = 'gradle'
+        }
     }
 }
 
@@ -55,11 +71,8 @@ subprojects {
         extraPublish sourceJar
     }
 
-    if (tasks.findByName('buildInfo')) {
-        buildInfo {
-            dependsOn: build
-            publishConfigs(configurations.extraPublish, configurations.archives)
-        }
+    artifactoryProjectPublish {
+        dependsOn: build
     }
 
     task versionProperties(type: WriteVersionProperties) {
