@@ -41,9 +41,11 @@ allprojects {
 
 artifactory {
     contextUrl = 'http://repo.jfrog.org/artifactory'
-    projectPublish {
-        publishConfigs('extraPublish', 'archives')
-        properties = ['build.status': "$it.project.status".toString()]
+    publish {
+        defaults {
+            publishConfigs('extraPublish', 'archives')
+            properties = ['build.status': "$it.project.status".toString()]
+        }
     }
     resolve {
         repository {
@@ -76,7 +78,7 @@ subprojects {
         extraPublish sourceJar
     }
 
-    artifactoryProjectPublish {
+    artifactoryPublish {
         dependsOn: build
     }
 
