@@ -81,6 +81,10 @@ subprojects {
         propertiesFile = new File(sourceSets.main.classesDir, "org/jfrog/wharf/${project.name}.properties")
     }
 
+    uploadArchives {
+        uploadDescriptor = true
+    }
+
     classes.dependsOn(versionProperties)
 }
 
