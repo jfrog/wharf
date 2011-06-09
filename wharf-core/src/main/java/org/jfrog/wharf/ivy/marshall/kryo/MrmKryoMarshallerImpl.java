@@ -41,7 +41,7 @@ public class MrmKryoMarshallerImpl implements MrmMarshaller {
             try {
                 inputStream = new FileInputStream(file);
                 ObjectBuffer buffer =
-                        KryoFactory.createModuleRevisionMetadataObjectBuffer(ModuleRevisionMetadata.class);
+                        KryoFactory.createModuleRevisionMetadataObjectBuffer();
                 return buffer.readObject(inputStream, ModuleRevisionMetadata.class);
             } catch (IOException ioe) {
                 Message.error("Error loading module revision metadata file: " + file.getAbsolutePath());
@@ -71,7 +71,7 @@ public class MrmKryoMarshallerImpl implements MrmMarshaller {
                 dir.mkdirs();
             }
             stream = new FileOutputStream(file);
-            ObjectBuffer buffer = KryoFactory.createModuleRevisionMetadataObjectBuffer(ModuleRevisionMetadata.class);
+            ObjectBuffer buffer = KryoFactory.createModuleRevisionMetadataObjectBuffer();
             buffer.writeObject(stream, mrm);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);

@@ -32,26 +32,38 @@ import java.util.Map;
  * @author Tomer Cohen
  */
 abstract class KryoFactory {
+    private static Kryo kryoMridMetadata = null;
+    private static Kryo kryoResolver = null;
 
     private KryoFactory() {
     }
 
-    public static ObjectBuffer createWharfResolverObjectBuffer(Class<WharfResolverMetadata> wharfResolverClazz) {
-        Kryo kryo = new Kryo();
-        kryo.register(wharfResolverClazz);
-        kryo.register(HashSet.class);
-        kryo.register(Map.class);
-        kryo.register(String[].class);
-        ObjectBuffer buffer = new ObjectBuffer(kryo);
-        return buffer;
+    public static ObjectBuffer createWharfResolverObjectBuffer() {
+        return new ObjectBuffer(getKryoResolver());
     }
 
-    public static ObjectBuffer createModuleRevisionMetadataObjectBuffer(Class<ModuleRevisionMetadata> mrmClazz) {
-        Kryo kryo = new Kryo();
-        kryo.register(mrmClazz);
-        kryo.register(ArtifactMetadata.class);
-        kryo.register(HashSet.class);
-        ObjectBuffer buffer = new ObjectBuffer(kryo);
-        return buffer;
+    private static Kryo getKryoResolver() {
+        if (kryoResolver == null) {
+            kryoResolver = new Kryo();
+            kryoResolver.register(WharfResolverMetadata.class);
+            kryoResolver.register(HashSet.class);
+            kryoResolver.register(Map.class);
+            kryoResolver.register(String[].class);
+        }
+        return kryoResolver;
+    }
+
+    public static ObjectBuffer createModuleRevisionMetadataObjectBuffer() {
+        return new ObjectBuffer(getKryoMridMetadata());
+    }
+
+    private static Kryo getKryoMridMetadata() {
+        if (kryoMridMetadata == null) {
+            kryoMridMetadata = new Kryo();
+            kryoMridMetadata.register(ModuleRevisionMetadata.class);
+            kryoMridMetadata.register(ArtifactMetadata.class);
+            kryoMridMetadata.register(HashSet.class);
+        }
+        return kryoMridMetadata;
     }
 }
