@@ -38,6 +38,8 @@ artifactory {
         defaults {
             publishConfigs('extraPublish', 'archives')
             properties = ['build.status': "$it.project.status".toString()]
+            publishIvy = true
+            publishPom = false
         }
     }
     resolve {
