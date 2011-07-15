@@ -35,7 +35,6 @@ import java.util.Set;
 public class WharfJacksonResolverMarshallerImpl implements WharfResolverMarshaller {
     private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.json";
 
-    @Override
     public Set<WharfResolverMetadata> getWharfMetadatas(File baseDir) {
         File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         if (resolversFile.exists()) {
@@ -62,12 +61,10 @@ public class WharfJacksonResolverMarshallerImpl implements WharfResolverMarshall
         }
     }
 
-    @Override
     public String getResolversFilePath() {
         return RESOLVERS_FILE_PATH;
     }
 
-    @Override
     public void save(File baseDir, Set<WharfResolverMetadata> wharfResolverMetadatas) {
         File resolversFile = new File(baseDir, RESOLVERS_FILE_PATH);
         OutputStream stream = null;

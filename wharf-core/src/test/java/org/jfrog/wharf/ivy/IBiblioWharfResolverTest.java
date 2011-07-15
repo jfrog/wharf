@@ -65,7 +65,6 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
             this.shouldNotDownload = shouldNotDownload;
         }
 
-        @Override
         public void add(String query, int status) {
             assertFalse("Query " + query + " should not happen!", shouldNotDownload && query.startsWith("GET") && status == 200);
             List<Integer> count = counter.get(query);

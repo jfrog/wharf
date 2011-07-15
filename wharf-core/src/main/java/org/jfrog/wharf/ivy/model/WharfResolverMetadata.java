@@ -99,7 +99,7 @@ public class WharfResolverMetadata {
     }
 
     public String getId() {
-        if (id == null || id.isEmpty()) {
+        if (WharfUtils.isEmptyString(id)) {
             String idString = type + name + ivyPattern + artifactPattern + params + user;
             id = WharfUtils.computeUUID(idString);
         }

@@ -21,7 +21,6 @@ package org.jfrog.wharf.ivy.resolver;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.ResourceDownloader;
-import org.apache.ivy.plugins.repository.url.URLRepository;
 import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 
 import java.io.File;
@@ -38,7 +37,6 @@ public class WharfResourceDownloader implements ResourceDownloader {
         this.resolver = resolver;
     }
 
-    @Override
     public void download(Artifact artifact, Resource resource, File dest) throws IOException {
         if (!(resource instanceof WharfUrlResource)) {
             throw new IllegalArgumentException("The Wharf Resolver manage only WharfUrlResource");

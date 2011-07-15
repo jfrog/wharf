@@ -84,12 +84,10 @@ public class WharfUrlResource implements Resource {
         }
     }
 
-    @Override
     public String getName() {
         return url.toExternalForm();
     }
 
-    @Override
     public Resource clone(String cloneName) {
         try {
             return new WharfUrlResource(new URL(cloneName));
@@ -103,7 +101,6 @@ public class WharfUrlResource implements Resource {
         }
     }
 
-    @Override
     public long getLastModified() {
         if (!init) {
             init();
@@ -117,7 +114,7 @@ public class WharfUrlResource implements Resource {
         lastModified = info.getLastModified();
         exists = info.isReachable();
         if (info.getSha1() != null) {
-            remote.put(ChecksumType.sha1,WharfUtils.getCleanChecksum(info.getSha1()));
+            remote.put(ChecksumType.sha1, WharfUtils.getCleanChecksum(info.getSha1()));
         }
         if (info.getMd5() != null) {
             remote.put(ChecksumType.md5, WharfUtils.getCleanChecksum(info.getMd5()));
@@ -125,7 +122,6 @@ public class WharfUrlResource implements Resource {
         init = true;
     }
 
-    @Override
     public long getContentLength() {
         if (!init) {
             init();
@@ -151,7 +147,6 @@ public class WharfUrlResource implements Resource {
         return remote.get(ChecksumType.md5);
     }
 
-    @Override
     public boolean exists() {
         if (!init) {
             init();
@@ -163,12 +158,10 @@ public class WharfUrlResource implements Resource {
         return getName();
     }
 
-    @Override
     public boolean isLocal() {
         return false;
     }
 
-    @Override
     public InputStream openStream() throws IOException {
         return URLHandlerRegistry.getDefault().openStream(url);
     }

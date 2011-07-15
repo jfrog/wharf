@@ -27,12 +27,10 @@ import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
  */
 public class JacksonMarshallerProvider implements MarshallerProvider {
 
-    @Override
     public MrmMarshaller getMetadataMarshaller() {
         return new MrmJacksonMarshallerImpl();
     }
 
-    @Override
     public WharfResolverMarshaller getWharfResolverMarshaller() {
         return new WharfJacksonResolverMarshallerImpl();
     }

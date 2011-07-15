@@ -51,7 +51,6 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         super.setRepository(repository);
     }
 
-    @Override
     public WharfURLRepository getWharfUrlRepository() {
         return (WharfURLRepository) super.getRepository();
     }
@@ -66,7 +65,6 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         getWharfUrlRepository().setChecksums(checksums);
     }
 
-    @Override
     public boolean supportsWrongSha1() {
         return getWharfUrlRepository().supportsWrongSha1();
     }
@@ -76,7 +74,6 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         return getWharfUrlRepository().getChecksumAlgorithms();
     }
 
-    @Override
     public ResolvedModuleRevision basicFindModuleInCache(DependencyDescriptor dd, ResolveData data, boolean anyResolver) {
         return super.findModuleInCache(dd, data, anyResolver);
     }
@@ -91,7 +88,6 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         return super.getCacheOptions(data);
     }
 
-    @Override
     public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);

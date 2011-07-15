@@ -10,16 +10,13 @@ import org.apache.ivy.util.Message;
  */
 public class WharfCopyListener implements CopyProgressListener {
 
-    @Override
     public void start(CopyProgressEvent evt) {
         Message.info(evt.toString());
     }
 
-    @Override
     public void progress(CopyProgressEvent evt) {
     }
 
-    @Override
     public void end(CopyProgressEvent evt) {
     }
 

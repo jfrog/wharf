@@ -184,7 +184,6 @@ public class WharfUrlHandler extends BasicURLHandler {
     static class StringStreamHandler implements StreamHandler {
         String content;
 
-        @Override
         public void handleStream(URLConnection srcConn, InputStream inStream) throws IOException {
             content = FileUtil.readEntirely(inStream);
         }

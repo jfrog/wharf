@@ -99,7 +99,6 @@ public class WharfURLRepository extends AbstractRepository {
         IvyContext.getContext().set(ALWAYS_CHECK_RESOURCES, alwaysCheck);
     }
 
-    @Override
     public Resource getResource(String source) throws IOException {
         return getWharfResource(source);
     }
@@ -156,7 +155,7 @@ public class WharfURLRepository extends AbstractRepository {
             List urls = lister.listAll(new URL(parent));
             if (urls != null) {
                 List ret = new ArrayList(urls.size());
-                for (ListIterator iter = urls.listIterator(); iter.hasNext();) {
+                for (ListIterator iter = urls.listIterator(); iter.hasNext(); ) {
                     URL url = (URL) iter.next();
                     ret.add(url.toExternalForm());
                 }

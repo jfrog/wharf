@@ -36,12 +36,10 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
     private static final String RESOLVERS_LOCK_FILE_PATH = ".wharf/resolvers.kryo.lock";
     private static final long WAIT_FOR_LOCK_MS = 2000L;
 
-    @Override
     public String getResolversFilePath() {
         return RESOLVERS_FILE_PATH;
     }
 
-    @Override
     public void save(File baseDir, Set<WharfResolverMetadata> wharfResolverMetadatas) {
         FileHolder fileHolder = new FileHolder(baseDir);
         OutputStream stream = null;
@@ -64,7 +62,6 @@ public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
         }
     }
 
-    @Override
     public Set<WharfResolverMetadata> getWharfMetadatas(File baseDir) {
         FileHolder fileHolder = new FileHolder(baseDir);
         try {

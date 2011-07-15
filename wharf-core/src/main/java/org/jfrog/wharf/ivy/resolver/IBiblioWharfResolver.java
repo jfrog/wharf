@@ -56,7 +56,6 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         super.setRepository(repository);
     }
 
-    @Override
     public WharfURLRepository getWharfUrlRepository() {
         return (WharfURLRepository) super.getRepository();
     }
@@ -71,7 +70,6 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         getWharfUrlRepository().setChecksums(checksums);
     }
 
-    @Override
     public boolean supportsWrongSha1() {
         return getWharfUrlRepository().supportsWrongSha1();
     }
@@ -140,7 +138,6 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         }
     }
 
-    @Override
     public ResolvedModuleRevision basicFindModuleInCache(DependencyDescriptor dd, ResolveData data, boolean anyResolver) {
         return super.findModuleInCache(dd, data, anyResolver);
     }
@@ -150,7 +147,6 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         return super.getCacheOptions(data);
     }
 
-    @Override
     public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
         WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
         return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
@@ -195,28 +191,24 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
             this.interval = interval;
         }
 
-        @Override
         public boolean isCacheTimedOut(long lastResolvedTime) {
             return System.currentTimeMillis() - lastResolvedTime > interval;
         }
     }
 
     public static final CacheTimeoutStrategy NEVER = new CacheTimeoutStrategy() {
-        @Override
         public boolean isCacheTimedOut(long lastResolvedTime) {
             return false;
         }
     };
 
     public static final CacheTimeoutStrategy ALWAYS = new CacheTimeoutStrategy() {
-        @Override
         public boolean isCacheTimedOut(long lastResolvedTime) {
             return true;
         }
     };
 
     public static final CacheTimeoutStrategy DAILY = new CacheTimeoutStrategy() {
-        @Override
         public boolean isCacheTimedOut(long lastResolvedTime) {
             Calendar calendarCurrent = Calendar.getInstance();
             calendarCurrent.setTime(new Date());

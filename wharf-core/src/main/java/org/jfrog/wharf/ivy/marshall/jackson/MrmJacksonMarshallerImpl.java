@@ -35,7 +35,6 @@ public class MrmJacksonMarshallerImpl implements MrmMarshaller {
     private static final String DEFAULT_DATA_FILE_PATTERN =
             "[organisation]/[module](/[branch])/wharfdata-[revision].json";
 
-    @Override
     public ModuleRevisionMetadata getModuleRevisionMetadata(File file) {
         if (file.exists()) {
             InputStream inputStream = null;
@@ -62,7 +61,6 @@ public class MrmJacksonMarshallerImpl implements MrmMarshaller {
         return null;
     }
 
-    @Override
     public void save(ModuleRevisionMetadata mrm, File file) {
         OutputStream stream = null;
         try {
@@ -86,7 +84,6 @@ public class MrmJacksonMarshallerImpl implements MrmMarshaller {
         }
     }
 
-    @Override
     public String getDataFilePattern() {
         return DEFAULT_DATA_FILE_PATTERN;
     }

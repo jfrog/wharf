@@ -22,6 +22,7 @@ package org.jfrog.wharf.ivy.model;
 import org.apache.ivy.core.cache.ArtifactOrigin;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
+import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.net.URL;
 import java.util.HashMap;
@@ -45,7 +46,7 @@ public class ArtifactMetadata {
 
     public static String extractResolverId(Artifact artifact, ArtifactOrigin origin) {
         String artifactResolverId = extractResolverId(artifact);
-        if (artifactResolverId == null || artifactResolverId.isEmpty()) {
+        if (WharfUtils.isEmptyString(artifactResolverId)) {
             // Get the resolver id from the origin
             return extractResolverId(origin.getArtifact());
         }
@@ -92,10 +93,10 @@ public class ArtifactMetadata {
         if (id == null) {
             throw new NullPointerException("ArtifactMetadata ID cannot be null!");
         }
-        if (artResolverId == null || artResolverId.isEmpty()) {
+        if (WharfUtils.isEmptyString(artResolverId)) {
             artResolverId = resolverId;
         }
-        if (resolverId == null || resolverId.isEmpty()) {
+        if (WharfUtils.isEmptyString(resolverId)) {
             throw new IllegalStateException("Resolver id cannot be 0");
         }
     }

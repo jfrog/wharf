@@ -8,6 +8,7 @@ import org.jfrog.wharf.ivy.resolver.WharfResolver;
 /**
  * Date: 4/13/11
  * Time: 3:37 PM
+ *
  * @author Fred Simon
  */
 public class WharfArtifactResourceResolver implements ArtifactResourceResolver {
@@ -17,7 +18,6 @@ public class WharfArtifactResourceResolver implements ArtifactResourceResolver {
         this.resolver = resolver;
     }
 
-    @Override
     public ResolvedResource resolve(Artifact artifact) {
         artifact = resolver.fromSystem(artifact);
         return resolver.getArtifactRef(artifact, null);

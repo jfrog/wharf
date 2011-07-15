@@ -290,4 +290,8 @@ public class WharfUtils {
             }
         }
     }
+
+    public static boolean isEmptyString(String s) {
+        return s == null || s.length() == 0 || s.trim().length() == 0;
+    }
 }
