@@ -165,10 +165,10 @@ public class WharfUtils {
     static {
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("windows")) {
-            if ((!osName.contains("vista") || !osName.contains("7"))) {
-                OS = OperatingSystem.OLD_WINDOWS;
-            } else {
+            if (osName.contains("vista") || osName.contains("7")) {
                 OS = OperatingSystem.NEW_WINDOWS;
+            } else {
+                OS = OperatingSystem.OLD_WINDOWS;
             }
         } else if (osName.contains("mac os x")) {
             OS = OperatingSystem.OS_X;

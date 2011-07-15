@@ -30,6 +30,7 @@ import java.io.*;
  * @author Tomer Cohen
  */
 public abstract class WindowsUtils {
+    private static boolean mklinkWorks = true;
 
     // utility class
     private WindowsUtils() {
@@ -63,40 +64,46 @@ public abstract class WindowsUtils {
             if (dest.getParentFile() != null) {
                 dest.getParentFile().mkdirs();
             }
+            if (!mklinkWorks) {
+                FileUtil.copy(src, dest, l, overwrite);
+            } else {
+                Runtime runtime = Runtime.getRuntime();
+                Message.verbose("executing 'mklink " + src.getAbsolutePath() + " " + dest.getPath()
+                        + "'");
+                Process process = runtime.exec(new String[]{"mklink", src.getAbsolutePath(),
+                        dest.getPath()});
 
-            Runtime runtime = Runtime.getRuntime();
-            Message.verbose("executing 'mklink " + src.getAbsolutePath() + " " + dest.getPath()
-                    + "'");
-            Process process = runtime.exec(new String[]{"mklink", src.getAbsolutePath(),
-                    dest.getPath()});
+                if (process.waitFor() != 0) {
+                    InputStream errorStream = process.getErrorStream();
+                    InputStreamReader isr = new InputStreamReader(errorStream);
+                    BufferedReader br = new BufferedReader(isr);
 
-            if (process.waitFor() != 0) {
-                InputStream errorStream = process.getErrorStream();
-                InputStreamReader isr = new InputStreamReader(errorStream);
-                BufferedReader br = new BufferedReader(isr);
+                    StringBuffer error = new StringBuffer();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        error.append(line);
+                        error.append('\n');
+                    }
 
-                StringBuffer error = new StringBuffer();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    error.append(line);
-                    error.append('\n');
+                    throw new IOException("error performing mklink " + src + " to " + dest + ":\n" + error);
                 }
 
-                throw new IOException("error performing mklink " + src + " to " + dest + ":\n" + error);
-            }
+                // check if the creation of the symbolic link was successful
+                if (!dest.exists()) {
+                    throw new IOException("error performing mklink: " + dest + " doesn't exists");
+                }
 
-            // check if the creation of the symbolic link was successful
-            if (!dest.exists()) {
-                throw new IOException("error performing mklink: " + dest + " doesn't exists");
-            }
-
-            // check if the result is a true symbolic link
-            if (dest.getAbsolutePath().equals(dest.getCanonicalPath())) {
-                dest.delete(); // just make sure we do delete the invalid symlink!
-                throw new IOException("error mklink: " + dest + " isn't a symlink");
+                // check if the result is a true symbolic link
+                if (dest.getAbsolutePath().equals(dest.getCanonicalPath())) {
+                    dest.delete(); // just make sure we do delete the invalid symlink!
+                    throw new IOException("error mklink: " + dest + " isn't a symlink");
+                }
             }
         } catch (IOException x) {
-            Message.verbose("mklink failed; falling back to copy");
+            if (mklinkWorks) {
+            Message.info("mklink cannot be executed! Make sure you are admin of this machine! Falling back to copy.");
+                mklinkWorks = false;
+            }
             StringWriter buffer = new StringWriter();
             x.printStackTrace(new PrintWriter(buffer));
             Message.debug(buffer.toString());
