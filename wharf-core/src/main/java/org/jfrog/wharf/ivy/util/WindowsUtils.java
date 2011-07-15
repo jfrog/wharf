@@ -95,7 +95,7 @@ public abstract class WindowsUtils {
             }
         } catch (IOException x) {
             if (mklinkWorks) {
-                Message.info("mklink cannot be executed due to: " + x.getMessage() + "\n" +
+                Message.debug("mklink cannot be executed due to: " + x.getMessage() + "\n" +
                         "Make sure you are admin of this machine! Falling back to copy.");
                 mklinkWorks = false;
             }
