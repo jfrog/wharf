@@ -70,8 +70,8 @@ public abstract class WindowsUtils {
                 Runtime runtime = Runtime.getRuntime();
                 Message.verbose("executing 'mklink " + src.getAbsolutePath() + " " + dest.getPath()
                         + "'");
-                Process process = runtime.exec(new String[]{"mklink", src.getAbsolutePath(),
-                        dest.getPath()});
+                Process process = runtime.exec(new String[]{"cmd.exe", "/C", "mklink", dest.getAbsolutePath(),
+                        src.getPath()});
 
                 if (process.waitFor() != 0) {
                     InputStream errorStream = process.getErrorStream();
@@ -92,16 +92,11 @@ public abstract class WindowsUtils {
                 if (!dest.exists()) {
                     throw new IOException("error performing mklink: " + dest + " doesn't exists");
                 }
-
-                // check if the result is a true symbolic link
-                if (dest.getAbsolutePath().equals(dest.getCanonicalPath())) {
-                    dest.delete(); // just make sure we do delete the invalid symlink!
-                    throw new IOException("error mklink: " + dest + " isn't a symlink");
-                }
             }
         } catch (IOException x) {
             if (mklinkWorks) {
-            Message.info("mklink cannot be executed! Make sure you are admin of this machine! Falling back to copy.");
+                Message.info("mklink cannot be executed due to: " + x.getMessage() + "\n" +
+                        "Make sure you are admin of this machine! Falling back to copy.");
                 mklinkWorks = false;
             }
             StringWriter buffer = new StringWriter();
