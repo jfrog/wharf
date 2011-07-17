@@ -324,7 +324,10 @@ public class WharfUrlHandler extends BasicURLHandler {
             ((HttpURLConnection) con).disconnect();
         } else if (con != null) {
             try {
-                con.getInputStream().close();
+                InputStream is = con.getInputStream();
+                if (is != null) {
+                    is.close();
+                }
             } catch (IOException e) {
                 // ignored
             }

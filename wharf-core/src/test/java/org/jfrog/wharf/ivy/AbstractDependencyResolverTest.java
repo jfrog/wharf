@@ -115,7 +115,11 @@ public class AbstractDependencyResolverTest {
     }
 
     private static boolean deleteFolder(File del) {
-        for (File file : del.listFiles()) {
+        File[] files = del.listFiles();
+        if (files == null || files.length == 0) {
+            return true;
+        }
+        for (File file : files) {
             if (!deleteFile(file)) {
                 return false;
             }
