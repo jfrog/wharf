@@ -33,7 +33,6 @@ import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.checksum.ChecksumType;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
-import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.repository.WharfArtifactResourceResolver;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.resolver.WharfResolver;
@@ -127,17 +126,7 @@ public class WharfUtils {
             WharfURLRepository.setAlwaysCheck(true);
             return null;
         }
-        ResolvedModuleRevision moduleRevision = wharfResolver.basicFindModuleInCache(dd, data, false);
-        if (moduleRevision != null) {
-            ModuleRevisionMetadata metadata = wharfResolver.getCacheProperties(moduleRevision.getId());
-            if (metadata == null) {
-                Message.debug("Dependency descriptor " + dd.getDependencyRevisionId() + " has no descriptor");
-                metadata = new ModuleRevisionMetadata();
-            }
-            metadata.latestResolvedTime = String.valueOf(System.currentTimeMillis());
-            cacheManager.getMetadataHandler().saveModuleRevisionMetadata(moduleRevision.getId(), metadata);
-        }
-        return moduleRevision;
+        return wharfResolver.basicFindModuleInCache(dd, data, false);
     }
 
     private enum OperatingSystem {
@@ -283,6 +272,9 @@ public class WharfUtils {
             // If we get here, then the file was found in cache with the good checksum!
             // Just need to link the storage to file to the final cache destination.
             WharfUtils.linkCacheFileToStorage(storageFile, dest);
+            if (!storageFile.setLastModified(resource.getLastModified())) {
+                throw new IOException("Could not change the timestamp of " + storageFile.getAbsolutePath());
+            }
             return dest.length();
         } finally {
             if (tempStorageFile.exists()) {

@@ -405,6 +405,8 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
         ModuleRevisionMetadata mrm = getMetadataHandler().getModuleRevisionMetadata(mrid);
         if (mrm == null) {
             mrm = new ModuleRevisionMetadata();
+            mrm.latestResolvedRevision = artifact.getModuleRevisionId().getRevision();
+            mrm.latestResolvedTime = String.valueOf(System.currentTimeMillis());
         }
         ArtifactMetadata artMd = new ArtifactMetadata(artifact, origin);
         mrm.artifactMetadata.add(artMd);
@@ -633,14 +635,6 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             }
             if (resolvedRevision == null) {
                 Message.verbose(getName() + ": no cached resolved revision for " + mrid);
-                return null;
-            }
-            String resolvedTime = mrm.latestResolvedTime;
-            if (resolvedTime == null) {
-                Message.verbose(getName()
-                        + ": inconsistent or old cache: no cached resolved time for " + mrid);
-                saveResolvedRevision(mrid, resolvedRevision);
-                return resolvedRevision;
             }
             return resolvedRevision;
         } finally {

@@ -27,8 +27,10 @@ allprojects {
     apply plugin: 'idea'
     apply plugin: 'artifactory'
 
-    ideaProject {
-        javaVersion = '1.6'
+    idea {
+        project {
+            javaVersion = '1.6'
+        }
     }
 }
 
@@ -78,7 +80,7 @@ subprojects {
     }
 
     task versionProperties(type: WriteVersionProperties) {
-        propertiesFile = new File(sourceSets.main.classesDir, "org/jfrog/wharf/${project.name}.properties")
+        propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
     }
 
     uploadArchives {

@@ -53,7 +53,11 @@ public class WharfResourceDownloader implements ResourceDownloader {
             resolver.getAndCheck(resource, part);
         }
         if (!part.renameTo(dest)) {
-            throw new IOException("impossible to move part file to definitive one: " + part + " -> " + dest);
+            throw new IOException("impossible to move part file to definitive one: " + part.getAbsolutePath() +
+                    " -> " + dest.getAbsolutePath());
+        }
+        if (!dest.setLastModified(resource.getLastModified())) {
+            throw new IOException("impossible to change file timestamp: " + dest.getAbsolutePath());
         }
     }
 }
