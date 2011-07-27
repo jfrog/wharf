@@ -18,25 +18,30 @@
 package org.jfrog.wharf.ivy;
 
 import org.apache.ivy.core.event.EventManager;
-import org.apache.ivy.core.resolve.DownloadOptions;
-import org.apache.ivy.core.resolve.ResolveData;
-import org.apache.ivy.core.resolve.ResolveEngine;
-import org.apache.ivy.core.resolve.ResolveOptions;
+import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.core.report.DownloadReport;
+import org.apache.ivy.core.report.DownloadStatus;
+import org.apache.ivy.core.resolve.*;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.core.sort.SortEngine;
 import org.apache.ivy.util.FileUtil;
 import org.apache.tools.ant.util.FileUtils;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.File;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class AbstractDependencyResolverTest {
@@ -47,6 +52,25 @@ public class AbstractDependencyResolverTest {
             + "[organisation]" + FS + "[module]" + FS + "ivys" + FS + "ivy-[revision].xml";
 
     protected IvySettingsTestHolder defaultSettings;
+
+    protected IBiblioWharfResolver createIBiblioResolver(String name, String root) {
+        IBiblioWharfResolver resolver = new IBiblioWharfResolver();
+        resolver.setName(name);
+        resolver.setRoot(root);
+        resolver.setM2compatible(true);
+        resolver.setSettings(defaultSettings.settings);
+        defaultSettings.settings.addResolver(resolver);
+        defaultSettings.settings.setDefaultResolver(name);
+        return resolver;
+    }
+
+    protected void downloadAndCheck(ModuleRevisionId mrid, IBiblioWharfResolver resolver, int nbDownload) throws ParseException {
+        ResolvedModuleRevision rmr;
+        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
+        assertNotNull(rmr);
+        DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
+        assertEquals(nbDownload, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
+    }
 
     protected class IvySettingsTestHolder {
         protected IvySettings settings;

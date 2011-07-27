@@ -184,6 +184,7 @@ public class WharfUtils {
         if (checksum == null) {
             return null;
         }
+        checksum = checksum.trim();
         String cleanChecksum;
         if (checksum.indexOf(' ') > -1
                 && (checksum.startsWith("md") || checksum.startsWith("sha"))) {

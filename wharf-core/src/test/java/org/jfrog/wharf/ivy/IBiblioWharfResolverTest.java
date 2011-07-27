@@ -18,11 +18,7 @@
 
 package org.jfrog.wharf.ivy;
 
-import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
-import org.apache.ivy.core.report.DownloadReport;
-import org.apache.ivy.core.report.DownloadStatus;
-import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
 import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver;
 import org.junit.Test;
@@ -45,14 +41,14 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
     @Test
     public void testIBiblioWharfResolver() throws Exception {
-        IBiblioWharfResolver resolver1 = setResolver(RJO_NAME, RJO_ROOT);
-        IBiblioWharfResolver resolver2 = setResolver(RJO_NAME, RJO_ROOT);
+        IBiblioWharfResolver resolver1 = createIBiblioResolver(RJO_NAME, RJO_ROOT);
+        IBiblioWharfResolver resolver2 = createIBiblioResolver(RJO_NAME, RJO_ROOT);
         assertEquals(resolver1, resolver2);
         assertEquals(resolver1.hashCode(), resolver2.hashCode());
         resolver2.setName(RGO_NAME);
         assertNotSame(resolver1, resolver2);
         assertNotSame(resolver1.hashCode(), resolver2.hashCode());
-        IBiblioWharfResolver resolver3 = setResolver(RJO_NAME, RGO_ROOT);
+        IBiblioWharfResolver resolver3 = createIBiblioResolver(RJO_NAME, RGO_ROOT);
         assertNotSame(resolver1, resolver3);
         assertNotSame(resolver1.hashCode(), resolver3.hashCode());
     }
@@ -95,12 +91,12 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
     public void testBasicWharfResolver() throws Exception {
         MyTracer myTracer = new MyTracer(false);
         WharfUrlHandler.tracer = myTracer;
-        IBiblioWharfResolver resolver = setResolver(RJO_NAME, RJO_ROOT);
+        IBiblioWharfResolver resolver = createIBiblioResolver(RJO_NAME, RJO_ROOT);
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("junit", "junit", "4.8.2");
-        downloadAndCheck(mrid, resolver, true);
+        downloadAndCheck(mrid, resolver, 3);
         myTracer.check();
         assertEquals(8, myTracer.counter.size());
-        downloadAndCheck(mrid, resolver, false);
+        downloadAndCheck(mrid, resolver, 0);
         assertEquals(8, myTracer.counter.size());
     }
 
@@ -108,13 +104,13 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
     public void testFullWharfResolver() throws Exception {
         MyTracer myTracer = new MyTracer(false);
         WharfUrlHandler.tracer = myTracer;
-        IBiblioWharfResolver resolver = setResolver(RJO_NAME, RJO_ROOT);
+        IBiblioWharfResolver resolver = createIBiblioResolver(RJO_NAME, RJO_ROOT);
         fullDownloadAndCheck(resolver, true);
         myTracer.check();
         assertEquals(19, myTracer.counter.size());
         myTracer = new MyTracer(true);
         WharfUrlHandler.tracer = myTracer;
-        IBiblioWharfResolver resolver2 = setResolver(RGO_NAME, RGO_ROOT);
+        IBiblioWharfResolver resolver2 = createIBiblioResolver(RGO_NAME, RGO_ROOT);
         fullDownloadAndCheck(resolver2, true);
         myTracer.check();
         assertEquals(10, myTracer.counter.size());
@@ -124,34 +120,12 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         assertEquals(10, myTracer.counter.size());
     }
 
-    private IBiblioWharfResolver setResolver(String name, String root) {
-        IBiblioWharfResolver resolver = new IBiblioWharfResolver();
-        resolver.setName(name);
-        resolver.setRoot(root);
-        resolver.setM2compatible(true);
-        resolver.setSettings(defaultSettings.settings);
-        defaultSettings.settings.addResolver(resolver);
-        defaultSettings.settings.setDefaultResolver(name);
-        return resolver;
-    }
-
     private void fullDownloadAndCheck(IBiblioWharfResolver resolver, boolean shouldDownload) throws ParseException {
-        downloadAndCheck(ModuleRevisionId.newInstance("org.antlr", "antlr", "3.1.3"), resolver, shouldDownload);
-        downloadAndCheck(ModuleRevisionId.newInstance("junit", "junit", "4.8"), resolver, shouldDownload);
+        downloadAndCheck(ModuleRevisionId.newInstance("org.antlr", "antlr", "3.1.3"), resolver, shouldDownload ? 3 : 0);
+        downloadAndCheck(ModuleRevisionId.newInstance("junit", "junit", "4.8"), resolver, shouldDownload ? 3 : 0);
 
         Collection<File> filesInFileStore = getFilesInFileStore();
         assertEquals(9, filesInFileStore.size());
     }
 
-    private void downloadAndCheck(ModuleRevisionId mrid, IBiblioWharfResolver resolver, boolean shouldDownload) throws ParseException {
-        ResolvedModuleRevision rmr;
-        rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
-        assertNotNull(rmr);
-        DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
-        if (shouldDownload) {
-            assertEquals(3, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
-        } else {
-            assertEquals(0, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
-        }
-    }
 }
