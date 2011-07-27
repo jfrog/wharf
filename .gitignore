@@ -7,12 +7,14 @@
 /build
 /buildSrc/.gradle
 /buildSrc/build
+/out
 
 # wharf-core
 /wharf-core/build
 /wharf-core/*.iml
+/wharf-core/out
 
 # wharf-core
 /wharf-resolver/build
 /wharf-resolver/*.iml
-
+/wharf-resolver/out
