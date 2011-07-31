@@ -69,7 +69,7 @@ public class WharfCacheManagerMultipleResolverTest extends AbstractDependencyRes
         resolverB.setRepositoryCacheManager(holder2.cacheManager);
         resolverB.setName("testB");
         resolverA.setSettings(holder2.settings);
-        resolverB.addIvyPattern(repoTestRoot.getAbsolutePath() + REL_IVY_PATTERN);
+        resolverB.addIvyPattern(repoTestRoot.getAbsolutePath() + FS + REL_IVY_PATTERN);
         resolverB.addArtifactPattern(repoTestRoot.getAbsolutePath() +
                 "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
         holder2.settings.addResolver(resolverB);

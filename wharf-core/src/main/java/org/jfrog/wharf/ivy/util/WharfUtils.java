@@ -73,7 +73,7 @@ public class WharfUtils {
     public static void hackIvyBasicResolver(WharfResolver wharfResolver) {
         try {
             // Override the URLRepository
-            wharfResolver.setRepository(new WharfURLRepository(wharfResolver));
+            wharfResolver.setRepository(new WharfURLRepository());
             // TODO: The following reflection can be removed once Ivy uses a getDownloader and getArtifactResourceResolver methods
             Field downloaderField = BasicResolver.class.getDeclaredField("downloader");
             downloaderField.setAccessible(true);

@@ -85,6 +85,10 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
 
     private String name;
 
+    private String cacheArtifactPattern;
+
+    private String cacheIvyPattern;
+
     private String changingPattern;
 
     private String changingMatcherName = PatternMatcher.EXACT_OR_REGEXP;
@@ -132,6 +136,28 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
     public void setSettings(IvySettings settings) {
         this.settings = settings;
         settingsChanged();
+    }
+
+    public String getCacheArtifactPattern() {
+        if (cacheArtifactPattern == null) {
+            return DEFAULT_ARTIFACT_PATTERN;
+        }
+        return cacheArtifactPattern;
+    }
+
+    public void setCacheArtifactPattern(String cacheArtifactPattern) {
+        this.cacheArtifactPattern = cacheArtifactPattern;
+    }
+
+    public String getCacheIvyPattern() {
+        if (cacheIvyPattern == null) {
+            return DEFAULT_IVY_PATTERN;
+        }
+        return cacheIvyPattern;
+    }
+
+    public void setCacheIvyPattern(String cacheIvyPattern) {
+        this.cacheIvyPattern = cacheIvyPattern;
     }
 
     private void settingsChanged() {

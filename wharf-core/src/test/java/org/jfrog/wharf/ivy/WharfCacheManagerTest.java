@@ -18,6 +18,7 @@
 
 package org.jfrog.wharf.ivy;
 
+import junit.framework.Assert;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.cache.ArtifactOrigin;
 import org.apache.ivy.core.module.descriptor.Artifact;
@@ -61,10 +62,9 @@ public class WharfCacheManagerTest {
         Ivy ivy = new Ivy();
         ivy.configureDefault();
         settings = ivy.getSettings();
-        f.delete(); // we want to use the file as a directory, so we delete the file itself
-        cacheManager = new WharfCacheManager();
-        cacheManager.setBasedir(f);
-        cacheManager.setSettings(settings);
+        // we want to use the file as a directory, so we delete the file itself
+        Assert.assertTrue(f.delete());
+        cacheManager = WharfCacheManager.newInstance(settings, "wharf-test", f);
         settings.setDefaultRepositoryCacheManager(cacheManager);
         settings.setDefaultCache(f);
         artifact = createArtifact("org", "module", "rev", "name", "type", "ext");
@@ -129,6 +129,7 @@ public class WharfCacheManagerTest {
         return new DefaultArtifact(mrid, new Date(), name, type, ext);
     }
 
+    
 }
 
 

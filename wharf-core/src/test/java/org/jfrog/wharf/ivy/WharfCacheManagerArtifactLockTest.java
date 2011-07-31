@@ -29,12 +29,13 @@ import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.core.sort.SortEngine;
 import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.repository.RepositoryCopyProgressListener;
-import org.apache.ivy.plugins.repository.file.FileRepository;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.CopyProgressEvent;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.repository.WharfURLRepository;
+import org.jfrog.wharf.ivy.resolver.FileSystemWharfResolver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,19 +46,7 @@ import java.text.ParseException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class WharfCacheManagerArtifactLockTest {
-
-    private File cache = new File("build/test/cache");
-
-    @Before
-    public void setUp() throws Exception {
-        FileUtil.forceDelete(cache);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        FileUtil.forceDelete(cache);
-    }
+public class WharfCacheManagerArtifactLockTest extends AbstractDependencyResolverTest {
 
     @Test
     public void testConcurrentResolve() throws Exception {
@@ -66,26 +55,22 @@ public class WharfCacheManagerArtifactLockTest {
         // concurrent resolves in separate vms but using the same cache. We don't span the test on
         // multiple vms, but using separate settings we should only run into shared cache related
         // issues, and not multi thread related issues.
-        IvySettings settings1 = new IvySettings();
-        settings1.setDefaultCache(cache);
-        IvySettings settings2 = new IvySettings();
-        settings2.setDefaultCache(cache);
-        IvySettings settings3 = new IvySettings();
-        settings3.setDefaultCache(cache);
-        IvySettings settings4 = new IvySettings();
-        settings4.setDefaultCache(cache);
+        IvySettingsTestHolder settings1 = createNewLockedSettings();
+        IvySettingsTestHolder settings2 = createNewLockedSettings();
+        IvySettingsTestHolder settings3 = createNewLockedSettings();
+        IvySettingsTestHolder settings4 = createNewLockedSettings();
 
         // run 3 concurrent resolves, one taking 100ms to download files, one 20ms and one 5ms
         // the first one do 10 resolves, the second one 20 and the third 50
         // note that the download time is useful only at the very beginning, then the cached file is used
         ResolveThread t1 = asyncResolve(
-                settings1, createSlowResolver(settings1, 100), "org6#mod6.4;3", 10);
+                settings1, createSlowResolver(settings1.settings, 100), "org6#mod6.4;3", 10);
         ResolveThread t2 = asyncResolve(
-                settings2, createSlowResolver(settings2, 20), "org6#mod6.4;3", 20);
+                settings2, createSlowResolver(settings2.settings, 20), "org6#mod6.4;3", 20);
         ResolveThread t3 = asyncResolve(
-                settings3, createSlowResolver(settings3, 5), "org6#mod6.4;3", 50);
+                settings3, createSlowResolver(settings3.settings, 5), "org6#mod6.4;3", 50);
         ResolveThread t4 = asyncResolve(
-                settings3, createSlowResolver(settings4, 5), "org6#mod6.2;2.0", 50);
+                settings3, createSlowResolver(settings4.settings, 5), "org6#mod6.2;2.0", 50);
         t1.join(100000);
         t2.join(20000);
         t3.join(20000);
@@ -100,17 +85,16 @@ public class WharfCacheManagerArtifactLockTest {
         assertFound("org6#mod6.2;2.0", t4.getFinalResult());
     }
 
-    private RepositoryCacheManager newCacheManager(IvySettings settings) {
-        WharfCacheManager cacheManager = WharfCacheManager.newInstance(settings, "cache", cache);
-        cacheManager.getMetadataHandler().setLockStrategy(new ArtifactLockStrategy());
-        return cacheManager;
+    private IvySettingsTestHolder createNewLockedSettings() {
+        IvySettingsTestHolder settingsTestHolder = createNewSettings();
+        settingsTestHolder.cacheManager.getMetadataHandler().setLockStrategy(new ArtifactLockStrategy());
+        return settingsTestHolder;
     }
 
-
     private FileSystemResolver createSlowResolver(IvySettings settings, final int sleep) {
-        FileSystemResolver resolver = new FileSystemResolver();
-        resolver.setRepositoryCacheManager(newCacheManager(settings));
-        resolver.setRepository(new FileRepository() {
+        FileSystemWharfResolver resolver = new FileSystemWharfResolver();
+        resolver.setRepositoryCacheManager(settings.getDefaultRepositoryCacheManager());
+        resolver.setRepository(new WharfURLRepository() {
             private RepositoryCopyProgressListener progress = new RepositoryCopyProgressListener(this) {
                 @Override
                 public void progress(CopyProgressEvent evt) {
@@ -119,24 +103,23 @@ public class WharfCacheManagerArtifactLockTest {
                 }
             };
 
-            @Override
-            protected RepositoryCopyProgressListener getProgressListener() {
+            public RepositoryCopyProgressListener getProgressListener() {
                 return progress;
             }
         });
         resolver.setName("test");
         resolver.setSettings(settings);
-        File baseDir = new File(settings.getBaseDir().getParentFile(), "src");
-        resolver.addIvyPattern(baseDir +
-                "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
-        resolver.addArtifactPattern(baseDir +
-                "/test/repositories/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
+        resolver.addIvyPattern(repoTestRoot.getAbsolutePath() +
+                "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
+        resolver.addArtifactPattern(repoTestRoot.getAbsolutePath() +
+                "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]");
+        resolver.setChecksums("");
         settings.addResolver(resolver);
         return resolver;
     }
 
 
-    private ResolveThread asyncResolve(IvySettings settings, FileSystemResolver resolver, String module, int loop) {
+    private ResolveThread asyncResolve(IvySettingsTestHolder settings, FileSystemResolver resolver, String module, int loop) {
         ResolveThread thread = new ResolveThread(settings, resolver, module, loop);
         thread.start();
         return thread;
@@ -148,11 +131,10 @@ public class WharfCacheManagerArtifactLockTest {
         assertEquals(module, rmr.getId().toString());
     }
 
-    private ResolvedModuleRevision resolveModule(IvySettings settings, FileSystemResolver resolver, String module)
+    private ResolvedModuleRevision resolveModule(IvySettingsTestHolder settings, FileSystemResolver resolver, String module)
             throws ParseException {
         return resolver.getDependency(new DefaultDependencyDescriptor(ModuleRevisionId.parse(module), false),
-                new ResolveData(new ResolveEngine(settings, new EventManager(), new SortEngine(settings)),
-                        new ResolveOptions()));
+                settings.data);
     }
 
     private void sleepSilently(int timeout) {
@@ -163,7 +145,7 @@ public class WharfCacheManagerArtifactLockTest {
     }
 
     private class ResolveThread extends Thread {
-        private IvySettings settings;
+        private IvySettingsTestHolder settings;
         private FileSystemResolver resolver;
         private String module;
         private final int loop;
@@ -171,18 +153,18 @@ public class WharfCacheManagerArtifactLockTest {
         private ResolvedModuleRevision finalResult;
         private int count;
 
-        public ResolveThread(IvySettings settings, FileSystemResolver resolver, String module, int loop) {
+        public ResolveThread(IvySettingsTestHolder settings, FileSystemResolver resolver, String module, int loop) {
             this.settings = settings;
             this.resolver = resolver;
             this.module = module;
             this.loop = loop;
         }
 
-        public synchronized ResolvedModuleRevision getFinalResult() {
+        public ResolvedModuleRevision getFinalResult() {
             return finalResult;
         }
 
-        public synchronized int getCount() {
+        public int getCount() {
             return count;
         }
 
@@ -195,10 +177,7 @@ public class WharfCacheManagerArtifactLockTest {
                     if (rmr == null) {
                         throw new RuntimeException("module not found: " + module);
                     }
-                    synchronized (this) {
-                        //Message.info(this.toString() + " count = " + count);
-                        count++;
-                    }
+                    count++;
                 } catch (ParseException e) {
                     Message.info("parse exception " + e);
                 } catch (RuntimeException e) {
@@ -211,9 +190,7 @@ public class WharfCacheManagerArtifactLockTest {
                     throw e;
                 }
             }
-            synchronized (this) {
-                finalResult = rmr;
-            }
+            finalResult = rmr;
         }
     }
 

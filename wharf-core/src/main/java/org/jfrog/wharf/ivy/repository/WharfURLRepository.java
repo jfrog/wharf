@@ -8,7 +8,6 @@ import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.TransferEvent;
 import org.apache.ivy.util.url.ApacheURLLister;
 import org.jfrog.wharf.ivy.checksum.ChecksumType;
-import org.jfrog.wharf.ivy.resolver.WharfResolver;
 import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
@@ -27,17 +26,19 @@ public class WharfURLRepository extends AbstractRepository {
     private static final ApacheURLLister lister = new ApacheURLLister();
     public static final String ALWAYS_CHECK_RESOURCES = "wharf.alwaysCheckResources";
 
-    private final RepositoryCopyProgressListener progress;
     private final Map<String, WharfUrlResource> resourcesCache;
-    private final WharfResolver resolver;
+    private final RepositoryCopyProgressListener progressListener;
     private EnumSet<ChecksumType> checksums;
 
-    public WharfURLRepository(WharfResolver resolver) {
-        this.resolver = resolver;
-        this.progress = new RepositoryCopyProgressListener(this);
+    public WharfURLRepository() {
+        this.progressListener = new RepositoryCopyProgressListener(this);
         this.resourcesCache = new HashMap<String, WharfUrlResource>();
         // Only SHA1 by default
         checkOnlySha1();
+    }
+
+    public RepositoryCopyProgressListener getProgressListener() {
+        return progressListener;
     }
 
     public EnumSet<ChecksumType> getChecksums() {
@@ -132,9 +133,9 @@ public class WharfURLRepository extends AbstractRepository {
         try {
             long totalLength = res.getContentLength();
             if (totalLength > 0) {
-                progress.setTotalLength(totalLength);
+                getProgressListener().setTotalLength(totalLength);
             }
-            WharfUtils.getWharfUrlHandler().download(res, destination, progress);
+            WharfUtils.getWharfUrlHandler().download(res, destination, getProgressListener());
         } catch (IOException ex) {
             fireTransferError(ex);
             throw ex;
@@ -142,7 +143,7 @@ public class WharfURLRepository extends AbstractRepository {
             fireTransferError(ex);
             throw ex;
         } finally {
-            progress.setTotalLength(null);
+            getProgressListener().setTotalLength(null);
         }
     }
 
