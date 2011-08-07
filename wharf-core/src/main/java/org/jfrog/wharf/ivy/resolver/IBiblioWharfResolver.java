@@ -130,7 +130,8 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
             return null;
         }
         ModuleRevisionMetadata metadata = getCacheProperties(moduleRevision.getId());
-        if (snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
+        // See http://issues.gradle.org/browse/GRADLE-1721 for some null metadata even after found in cache ?!?
+        if (metadata == null || snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
             setChangingPattern(".*-SNAPSHOT");
             return null;
         } else {
