@@ -33,6 +33,7 @@ import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.checksum.ChecksumType;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.repository.WharfArtifactResourceResolver;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.resolver.WharfResolver;
@@ -41,6 +42,8 @@ import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
@@ -83,6 +86,23 @@ public class WharfUtils {
             artifactResourceResolverField.set(wharfResolver, new WharfArtifactResourceResolver(wharfResolver));
         } catch (Exception e) {
             throw new RuntimeException("Could not hack Ivy :(", e);
+        }
+    }
+
+    public static ResolvedResource convertToWharfResource(WharfResolver wharfResolver,
+                                                          ArtifactMetadata artifactMetadata,
+                                                          // TODO: Revision should be in artifact metadata
+                                                          String revision) {
+        try {
+            WharfCacheManager cacheManager = (WharfCacheManager) wharfResolver.getRepositoryCacheManager();
+            File storageFile = cacheManager.getStorageFile(artifactMetadata.sha1);
+            WharfUrlResource urlResource = new WharfUrlResource(new URL(artifactMetadata.location));
+            urlResource.initWith(storageFile, artifactMetadata);
+            return new ResolvedResource(urlResource, revision);
+        } catch (MalformedURLException e) {
+            Message.warn("Artifact metadata " + artifactMetadata.id +
+                    " contains an invalid URL " + artifactMetadata.location + " :" + e.getMessage());
+            return null;
         }
     }
 

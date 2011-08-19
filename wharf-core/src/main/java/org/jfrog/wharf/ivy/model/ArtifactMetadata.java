@@ -97,7 +97,7 @@ public class ArtifactMetadata {
             artResolverId = resolverId;
         }
         if (WharfUtils.isEmptyString(resolverId)) {
-            throw new IllegalStateException("Resolver id cannot be 0");
+            throw new IllegalStateException("Resolver id cannot be empty");
         }
     }
 

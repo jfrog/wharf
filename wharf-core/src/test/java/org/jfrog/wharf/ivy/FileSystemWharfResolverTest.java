@@ -21,13 +21,7 @@ public class FileSystemWharfResolverTest extends AbstractDependencyResolverTest 
 
     @Test
     public void testBasicWharfResolver() throws Exception {
-        FileSystemWharfResolver resolver = new FileSystemWharfResolver();
-        resolver.setName("test");
-        resolver.setSettings(defaultSettings.settings);
-        defaultSettings.settings.addResolver(resolver);
-
-        resolver.addIvyPattern(getIvyPattern());
-        resolver.addArtifactPattern(repoTestRoot + "/1/[organisation]/[module]/[type]s/[artifact]-[revision].[type]");
+        FileSystemWharfResolver resolver = createFileSystemResolver("test", "1");
 
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("org1", "mod1.1", "2.0");
         ResolvedModuleRevision
@@ -44,4 +38,5 @@ public class FileSystemWharfResolverTest extends AbstractDependencyResolverTest 
         rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNull(rmr);
     }
+
 }

@@ -35,6 +35,7 @@ allprojects {
 }
 
 artifactory {
+    //contextUrl = 'http://fredsvaio:8081/artifactory'
     contextUrl = 'http://repo.jfrog.org/artifactory'
     publish {
         defaults {
@@ -80,7 +81,9 @@ subprojects {
     }
 
     task versionProperties(type: WriteVersionProperties) {
-        propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
+        //For 1.0-m-4
+        //propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
+        propertiesFile = new File(sourceSets.main.classesDir, "org/jfrog/wharf/${project.name}.properties")
     }
 
     uploadArchives {

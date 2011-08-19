@@ -18,6 +18,7 @@
 
 package org.jfrog.wharf.ivy.resolver;
 
+import org.apache.ivy.core.IvyPatternHelper;
 import org.apache.ivy.core.cache.CacheMetadataOptions;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
@@ -28,13 +29,20 @@ import org.apache.ivy.plugins.repository.Repository;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
+import org.apache.ivy.util.ContextualSAXHandler;
+import org.apache.ivy.util.Message;
+import org.apache.ivy.util.XMLHelper;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.util.WharfUtils;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
@@ -87,8 +95,25 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
 
     @Override
     public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
-        ResolvedResource ivyFileRef = super.findIvyFileRef(dd, data);
-        return WharfUtils.convertToWharfResource(ivyFileRef);
+        ResolvedResource ivyFileRef = null;
+        if (isSnapshot(dd)) {
+            String snapshotVersion = findSnapshotVersion(dd.getDependencyRevisionId());
+            if (snapshotVersion != null) {
+                ModuleRevisionMetadata metadata = getCacheProperties(dd.getDependencyRevisionId());
+                if (metadata != null && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
+                    for (ArtifactMetadata artifactMetadata : metadata.getArtifactMetadata()) {
+                        if (artifactMetadata.location.contains(snapshotVersion)) {
+                            ivyFileRef = WharfUtils.convertToWharfResource(this, artifactMetadata, snapshotVersion);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (ivyFileRef == null) {
+            ivyFileRef = WharfUtils.convertToWharfResource(super.findIvyFileRef(dd, data));
+        }
+        return ivyFileRef;
     }
 
     /**
@@ -123,6 +148,22 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
 
     @Override
     protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
+        boolean isSnapshot = isSnapshot(dd);
+        if (isSnapshot) {
+            String snapshotVersion = findSnapshotVersion(dd.getDependencyRevisionId());
+            if (snapshotVersion != null) {
+                ModuleRevisionMetadata metadata = getCacheProperties(dd.getDependencyRevisionId());
+                if (metadata != null && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
+                    for (ArtifactMetadata artifactMetadata : metadata.getArtifactMetadata()) {
+                        if (artifactMetadata.location.contains(snapshotVersion)) {
+                            // Let the find Ivy ref do it's job...
+                            // TODO: Means double POM to IVY parsing!!!
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
         setChangingPattern(null);
         ResolvedModuleRevision moduleRevision = WharfUtils.findModuleInCache(this, dd, data);
         if (moduleRevision == null) {
@@ -130,13 +171,75 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
             return null;
         }
         ModuleRevisionMetadata metadata = getCacheProperties(moduleRevision.getId());
-        // See http://issues.gradle.org/browse/GRADLE-1721 for some null metadata even after found in cache ?!?
-        if (metadata == null || snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
+        if (metadata != null && isSnapshot && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
             setChangingPattern(".*-SNAPSHOT");
             return null;
         } else {
             return moduleRevision;
         }
+    }
+
+    private String findSnapshotVersion(ModuleRevisionId mrid) {
+        InputStream metadataStream = null;
+        try {
+            String metadataLocation = IvyPatternHelper.substitute(
+                    getRoot() + "[organisation]/[module]/[revision]/maven-metadata.xml", convertM2IdForResourceSearch(mrid));
+            Resource metadata = getRepository().getResource(metadataLocation);
+            if (metadata.exists()) {
+                metadataStream = metadata.openStream();
+                final StringBuffer timestamp = new StringBuffer();
+                final StringBuffer buildNumer = new StringBuffer();
+                XMLHelper.parse(metadataStream, null, new ContextualSAXHandler() {
+                    public void endElement(String uri, String localName, String qName)
+                            throws SAXException {
+                        if ("metadata/versioning/snapshot/timestamp".equals(getContext())) {
+                            timestamp.append(getText());
+                        }
+                        if ("metadata/versioning/snapshot/buildNumber"
+                                .equals(getContext())) {
+                            buildNumer.append(getText());
+                        }
+                        super.endElement(uri, localName, qName);
+                    }
+                }, null);
+                if (timestamp.length() > 0) {
+                    // we have found a timestamp, so this is a snapshot unique version
+                    String rev = mrid.getRevision();
+                    rev = rev.substring(0, rev.length() - "SNAPSHOT".length());
+                    rev = rev + timestamp.toString() + "-" + buildNumer.toString();
+
+                    return rev;
+                }
+            } else {
+                Message.verbose("\tmaven-metadata not available: " + metadata);
+            }
+        } catch (IOException e) {
+            Message.verbose(
+                    "impossible to access maven metadata file, ignored: " + e.getMessage());
+        } catch (SAXException e) {
+            Message.verbose(
+                    "impossible to parse maven metadata file, ignored: " + e.getMessage());
+        } catch (ParserConfigurationException e) {
+            Message.verbose(
+                    "impossible to parse maven metadata file, ignored: " + e.getMessage());
+        } finally {
+            if (metadataStream != null) {
+                try {
+                    metadataStream.close();
+                } catch (IOException e) {
+                    // ignored
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isSnapshot(DependencyDescriptor dd) {
+        if (dd == null) {
+            return false;
+        }
+        String revision = dd.getAttribute("revision");
+        return revision != null && revision.endsWith("-SNAPSHOT");
     }
 
     public ResolvedModuleRevision basicFindModuleInCache(DependencyDescriptor dd, ResolveData data, boolean anyResolver) {

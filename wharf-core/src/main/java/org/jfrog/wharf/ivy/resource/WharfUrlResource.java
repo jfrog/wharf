@@ -24,6 +24,7 @@ import org.apache.ivy.plugins.repository.url.URLResource;
 import org.apache.ivy.util.url.URLHandlerRegistry;
 import org.jfrog.wharf.ivy.checksum.ChecksumType;
 import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
+import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
 import java.io.File;
@@ -122,6 +123,18 @@ public class WharfUrlResource implements Resource {
         init = true;
     }
 
+    public void initWith(File storageFile, ArtifactMetadata artifactMetadata) {
+        init = true;
+        exists = true;
+        contentLength = storageFile.length();
+        lastModified = storageFile.lastModified();
+        actual.put(ChecksumType.sha1, artifactMetadata.sha1);
+        actual.put(ChecksumType.md5, artifactMetadata.md5);
+        // TODO: Hack for now
+        remote.put(ChecksumType.sha1, artifactMetadata.sha1);
+        remote.put(ChecksumType.md5, artifactMetadata.md5);
+    }
+
     public long getContentLength() {
         if (!init) {
             init();
@@ -203,4 +216,5 @@ public class WharfUrlResource implements Resource {
         result = 31 * result + actual.hashCode();
         return result;
     }
+
 }
