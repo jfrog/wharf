@@ -56,9 +56,9 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         downloadAndCheck(mridRelease, chainResolver, 2);
         downloadAndCheck(mridSnapshot, chainResolver, 2);
         myTracer.check();
+        // TODO: Reduce this number WHARF-30
         assertEquals(25, myTracer.counter.size());
 
-/*
         chainResolver = createChainResolver();
 
         myTracer = new MyTracer(true, true);
@@ -66,8 +66,8 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         downloadAndCheck(mridRelease, chainResolver, 0);
         downloadAndCheck(mridSnapshot, chainResolver, 0);
         myTracer.check();
-        // TODO: Remove the 5 head requests
-        assertEquals(5, myTracer.counter.size());
+        // TODO: Remove the 8 head requests mainly due to WHARF-31 + WHARF-30
+        assertEquals(8, myTracer.counter.size());
 
         Thread.sleep(1000);
 
@@ -77,7 +77,8 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         WharfUrlHandler.tracer = myTracer;
         downloadAndCheck(mridRelease, chainResolver, 0);
         myTracer.check();
-        assertEquals(0, myTracer.counter.size());
+        // TODO: Remove the 3 head requests due to WHARF-31
+        assertEquals(3, myTracer.counter.size());
 
         // TODO: Find a way to touch the maven metadata xml file
         myTracer = new MyTracer(true, false);
@@ -85,7 +86,6 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         downloadAndCheck(mridSnapshot, chainResolver, 0);
         myTracer.check();
         assertEquals(5, myTracer.counter.size());
-*/
     }
 
     private ChainResolver createChainResolver() {
@@ -154,11 +154,11 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         public void add(String query, int status) {
             if (shouldNotSendHeads) {
                 // TODO: Maven metadata xml file is directly (and all the time) open by Ivy in org.apache.ivy.plugins.resolver.IBiblioResolver.findSnapshotVersion()
-                // TODO: Cache the 404 answers
-                if (!query.endsWith("maven-metadata.xml") && status != 404) {
-                    fail("Query " + query + " should not happen!");
-                } else {
+                // TODO: Cache the 404, 409 answers
+                if (query.endsWith("maven-metadata.xml") || status == 404 || status == 409) {
                     System.out.println("Try to avoid head query " + query + " got " + status);
+                } else {
+                    fail("Query " + query + " should not happen with status " + status);
                 }
             }
             assertFalse("Query " + query + " should not happen!", shouldNotDownload && query.startsWith("GET") && status == 200);
@@ -205,6 +205,7 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
     @Test
     public void testFullWharfResolver() throws Exception {
+        defaultSettings = createNewSettings();
         MyTracer myTracer = new MyTracer(false);
         WharfUrlHandler.tracer = myTracer;
         IBiblioWharfResolver resolver = createIBiblioResolver(RJO_NAME, RJO_ROOT);
