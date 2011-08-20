@@ -36,11 +36,13 @@ import static org.junit.Assert.*;
  */
 public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
-    public static final String RJO_ROOT = "http://repo.jfrog.org/artifactory/repo1";
+    public static final String RJO_ROOT = "http://repo-demo.jfrog.org/artifactory/jboss-releases";
     public static final String RJO_NAME = "rjo";
-    public static final String RGO_ROOT = "http://repo.gradle.org/repo1";
+    public static final String RJO2_ROOT = "http://repo-demo.jfrog.org/artifactory/libs-releases";
+    public static final String RJO2_NAME = "rjo2";
+    public static final String RGO_ROOT = "http://repo.gradle.org/gradle/libs";
     public static final String RGO_NAME = "rgo";
-    public static final String RJO_SNAPSHOTS_ROOT = "http://repo.jfrog.org/artifactory/gradle-plugins-snapshots";
+    public static final String RJO_SNAPSHOTS_ROOT = "http://repo-demo.jfrog.org/artifactory/jboss-snapshots";
     public static final String RJO_SNAPSHOTS_NAME = "rjo-snapshots";
 
     @Test
@@ -48,16 +50,16 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
         ChainResolver chainResolver = createChainResolver();
 
-        ModuleRevisionId mridRelease = ModuleRevisionId.newInstance("org.jfrog.buildinfo", "build-info-client", "2.0.1");
-        ModuleRevisionId mridSnapshot = ModuleRevisionId.newInstance("org.jfrog.buildinfo", "build-info-client", "2.0.x-SNAPSHOT");
+        ModuleRevisionId mridRelease = ModuleRevisionId.newInstance("org.hibernate", "hibernate-annotations", "3.5.5-Final");
+        ModuleRevisionId mridSnapshot = ModuleRevisionId.newInstance("org.hibernate", "hibernate-annotations", "3.5.5-SNAPSHOT");
 
         MyTracer myTracer = new MyTracer(false);
         WharfUrlHandler.tracer = myTracer;
         downloadAndCheck(mridRelease, chainResolver, 2);
-        downloadAndCheck(mridSnapshot, chainResolver, 2);
+        downloadAndCheck(mridSnapshot, chainResolver, 1);
         myTracer.check();
         // TODO: Reduce this number WHARF-30
-        assertEquals(25, myTracer.counter.size());
+        assertEquals(37, myTracer.counter.size());
 
         chainResolver = createChainResolver();
 
@@ -66,8 +68,8 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         downloadAndCheck(mridRelease, chainResolver, 0);
         downloadAndCheck(mridSnapshot, chainResolver, 0);
         myTracer.check();
-        // TODO: Remove the 8 head requests mainly due to WHARF-31 + WHARF-30
-        assertEquals(8, myTracer.counter.size());
+        // TODO: Remove the 4 head requests mainly due to WHARF-31 + WHARF-30
+        assertEquals(4, myTracer.counter.size());
 
         Thread.sleep(1000);
 
@@ -77,20 +79,18 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         WharfUrlHandler.tracer = myTracer;
         downloadAndCheck(mridRelease, chainResolver, 0);
         myTracer.check();
-        // TODO: Remove the 3 head requests due to WHARF-31
-        assertEquals(3, myTracer.counter.size());
+        assertEquals(0, myTracer.counter.size());
 
         // TODO: Find a way to touch the maven metadata xml file
         myTracer = new MyTracer(true, false);
         WharfUrlHandler.tracer = myTracer;
         downloadAndCheck(mridSnapshot, chainResolver, 0);
         myTracer.check();
-        assertEquals(5, myTracer.counter.size());
+        assertEquals(4, myTracer.counter.size());
     }
 
     private ChainResolver createChainResolver() {
-        IvySettingsTestHolder newSettings = createNewSettings();
-        defaultSettings = newSettings;
+        defaultSettings = createNewSettings();
         FileSystemWharfResolver fileTest = createFileSystemResolver("fileTest", "1");
         IBiblioWharfResolver central = createIBiblioResolver(RJO_NAME, RJO_ROOT);
         IBiblioWharfResolver resolver2 = createIBiblioResolver(RJO_SNAPSHOTS_NAME, RJO_SNAPSHOTS_ROOT);
@@ -109,17 +109,19 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
 
     @Test
     public void testNPENoMetadata() throws Exception {
-        ChainResolver chainResolver = createChainResolver();
+        defaultSettings = createNewSettings();
+        IBiblioWharfResolver central = createIBiblioResolver(RGO_NAME, RGO_ROOT);
 
         WharfUrlHandler.tracer = null;
-        downloadAndCheck(ModuleRevisionId.newInstance("org.apache.ant", "ant-parent", "1.7.1"), chainResolver, 0);
+        downloadAndCheck(ModuleRevisionId.newInstance("org.apache.ant", "ant-parent", "1.7.1"), central, 0);
         ModuleRevisionId mridPMaven = ModuleRevisionId.newInstance("org.sonatype.pmaven", "pmaven-common", "0.8-20100325");
-        downloadSources(mridPMaven, chainResolver, 0);
-        downloadAndCheck(mridPMaven, chainResolver, 1);
+        downloadSources(mridPMaven, central, 0);
+        downloadAndCheck(mridPMaven, central, 1);
 
-        chainResolver = createChainResolver();
-        downloadNoDescriptor(mridPMaven, chainResolver, 0);
-        downloadAndCheck(mridPMaven, chainResolver, 0);
+        defaultSettings = createNewSettings();
+        central = createIBiblioResolver(RGO_NAME, RGO_ROOT);
+        downloadNoDescriptor(mridPMaven, central, 0);
+        downloadAndCheck(mridPMaven, central, 0);
     }
 
     @Test
@@ -194,7 +196,7 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
     public void testBasicWharfResolver() throws Exception {
         MyTracer myTracer = new MyTracer(false);
         WharfUrlHandler.tracer = myTracer;
-        IBiblioWharfResolver resolver = createIBiblioResolver(RJO_NAME, RJO_ROOT);
+        IBiblioWharfResolver resolver = createIBiblioResolver(RGO_NAME, RGO_ROOT);
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("junit", "junit", "4.8.2");
         downloadAndCheck(mrid, resolver, 3);
         myTracer.check();
@@ -209,27 +211,26 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         MyTracer myTracer = new MyTracer(false);
         WharfUrlHandler.tracer = myTracer;
         IBiblioWharfResolver resolver = createIBiblioResolver(RJO_NAME, RJO_ROOT);
-        fullDownloadAndCheck(resolver, true, 3);
+        fullDownloadAndCheck(resolver, true, 2);
         myTracer.check();
-        assertEquals(19, myTracer.counter.size());
+        assertEquals(10, myTracer.counter.size());
         myTracer = new MyTracer(true);
         WharfUrlHandler.tracer = myTracer;
-        IBiblioWharfResolver resolver2 = createIBiblioResolver(RGO_NAME, RGO_ROOT);
-        fullDownloadAndCheck(resolver2, true, 3);
+        IBiblioWharfResolver resolver2 = createIBiblioResolver(RJO2_NAME, RJO2_ROOT);
+        fullDownloadAndCheck(resolver2, true, 2);
         myTracer.check();
-        assertEquals(10, myTracer.counter.size());
-        fullDownloadAndCheck(resolver, false, 3);
-        assertEquals(10, myTracer.counter.size());
-        fullDownloadAndCheck(resolver2, false, 3);
-        assertEquals(10, myTracer.counter.size());
+        assertEquals(6, myTracer.counter.size());
+        fullDownloadAndCheck(resolver, false, 0);
+        assertEquals(6, myTracer.counter.size());
+        fullDownloadAndCheck(resolver2, false, 0);
+        assertEquals(6, myTracer.counter.size());
     }
 
     private void fullDownloadAndCheck(IBiblioWharfResolver resolver, boolean shouldDownload, int junitDownloads) throws ParseException {
-        downloadAndCheck(ModuleRevisionId.newInstance("org.antlr", "antlr", "3.1.3"), resolver, shouldDownload ? 3 : 0);
-        downloadAndCheck(ModuleRevisionId.newInstance("junit", "junit", "4.8"), resolver, shouldDownload ? junitDownloads : 0);
+        downloadAndCheck(ModuleRevisionId.newInstance("org.hibernate", "hibernate-annotations", "3.5.5-Final"), resolver, shouldDownload ? junitDownloads : 0);
 
         Collection<File> filesInFileStore = getFilesInFileStore();
-        assertEquals(9, filesInFileStore.size());
+        assertEquals(4, filesInFileStore.size());
     }
 
 }
