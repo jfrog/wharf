@@ -88,11 +88,6 @@ public class IvyWharfResolver extends IvyRepResolver implements WharfResolver {
         return super.getCacheOptions(data);
     }
 
-    public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
-        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
-    }
-
     @Override
     public ResolvedResource getArtifactRef(Artifact artifact, Date date) {
         ResolvedResource artifactRef = super.getArtifactRef(artifact, date);

@@ -59,10 +59,6 @@ public interface WharfResolver {
 
     WharfURLRepository getWharfUrlRepository();
 
-    String[] getChecksumAlgorithms();
-
-    ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid);
-
     CacheMetadataOptions getCacheOptions(ResolveData data);
 
     ResolvedModuleRevision basicFindModuleInCache(DependencyDescriptor dd, ResolveData data, boolean anyResolver);

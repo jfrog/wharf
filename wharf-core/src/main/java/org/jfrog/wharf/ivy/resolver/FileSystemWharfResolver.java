@@ -73,11 +73,6 @@ public class FileSystemWharfResolver extends FileSystemResolver implements Wharf
         return super.getCacheOptions(data);
     }
 
-    public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
-        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
-    }
-
     @Override
     public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
         ResolvedResource ivyFileRef = super.findIvyFileRef(dd, data);

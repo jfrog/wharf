@@ -70,7 +70,7 @@ import java.util.regex.Pattern;
 /**
  * @author Tomer Cohen
  */
-public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAware {
+public class WharfCacheManager implements ModuleMetadataManager, RepositoryCacheManager, IvySettingsAware {
     private static final String DEFAULT_ARTIFACT_PATTERN =
             "[organisation]/[module](/[branch])/[resolverId]/[type]s/[artifact]-[revision](-[classifier])(.[ext])";
 
@@ -1094,6 +1094,15 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
             return options.isCheckmodified();
         }
         return isCheckmodified();
+    }
+
+    public long getLastResolvedTime(ModuleRevisionId mrid) {
+        ModuleRevisionMetadata moduleRevisionMetadata = getMetadataHandler().getModuleRevisionMetadata(mrid);
+        if (moduleRevisionMetadata != null) {
+            String lastResolvedProp = moduleRevisionMetadata.getLatestResolvedTime();
+            return lastResolvedProp != null ? Long.parseLong(lastResolvedProp) : 0L;
+        }
+        return 0L;
     }
 
     public void clean() {

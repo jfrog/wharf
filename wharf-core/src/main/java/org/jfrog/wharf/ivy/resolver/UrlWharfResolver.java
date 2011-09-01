@@ -101,11 +101,6 @@ public class UrlWharfResolver extends URLResolver implements WharfResolver {
         return super.getCacheOptions(data);
     }
 
-    public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
-        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
-    }
-
     @Override
     public long getAndCheck(Resource resource, File dest) throws IOException {
         return WharfUtils.getAndCheck(this, resource, dest);

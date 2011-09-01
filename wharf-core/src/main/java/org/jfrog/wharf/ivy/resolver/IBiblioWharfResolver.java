@@ -20,6 +20,7 @@ package org.jfrog.wharf.ivy.resolver;
 
 import org.apache.ivy.core.IvyPatternHelper;
 import org.apache.ivy.core.cache.CacheMetadataOptions;
+import org.apache.ivy.core.cache.RepositoryCacheManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
@@ -32,6 +33,7 @@ import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ContextualSAXHandler;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.XMLHelper;
+import org.jfrog.wharf.ivy.cache.ModuleMetadataManager;
 import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -96,10 +98,11 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
     @Override
     public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
         ResolvedResource ivyFileRef = null;
-        if (isSnapshot(dd)) {
-            String snapshotVersion = findSnapshotVersion(dd.getDependencyRevisionId());
+        if (isSnapshot(dd) && hasModuleMetadataManager()) {
+            ModuleRevisionId mrid = dd.getDependencyRevisionId();
+            String snapshotVersion = findSnapshotVersion(mrid);
             if (snapshotVersion != null) {
-                ModuleRevisionMetadata metadata = getCacheProperties(dd.getDependencyRevisionId());
+                ModuleRevisionMetadata metadata = getCacheProperties(mrid);
                 if (metadata != null && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
                     for (ArtifactMetadata artifactMetadata : metadata.getArtifactMetadata()) {
                         if (artifactMetadata.location.contains(snapshotVersion)) {
@@ -149,10 +152,11 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
     @Override
     protected ResolvedModuleRevision findModuleInCache(DependencyDescriptor dd, ResolveData data) {
         boolean isSnapshot = isSnapshot(dd);
-        if (isSnapshot) {
-            String snapshotVersion = findSnapshotVersion(dd.getDependencyRevisionId());
+        if (isSnapshot && hasModuleMetadataManager()) {
+            ModuleRevisionId mrid = dd.getDependencyRevisionId();
+            String snapshotVersion = findSnapshotVersion(mrid);
             if (snapshotVersion != null) {
-                ModuleRevisionMetadata metadata = getCacheProperties(dd.getDependencyRevisionId());
+                ModuleRevisionMetadata metadata = getCacheProperties(mrid);
                 if (metadata != null && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
                     for (ArtifactMetadata artifactMetadata : metadata.getArtifactMetadata()) {
                         if (artifactMetadata.location.contains(snapshotVersion)) {
@@ -170,8 +174,7 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
             setChangingPattern(".*-SNAPSHOT");
             return null;
         }
-        ModuleRevisionMetadata metadata = getCacheProperties(moduleRevision.getId());
-        if (metadata != null && isSnapshot && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
+        if (isSnapshot && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(moduleRevision.getId()))) {
             setChangingPattern(".*-SNAPSHOT");
             return null;
         } else {
@@ -251,20 +254,31 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
         return super.getCacheOptions(data);
     }
 
-    public ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
-        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
-        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
-    }
-
     @Override
     public long getAndCheck(Resource resource, File dest) throws IOException {
         return WharfUtils.getAndCheck(this, resource, dest);
     }
 
-    private Long getLastResolvedTime(ModuleRevisionMetadata cacheProperties) {
-        String lastResolvedProp = cacheProperties.latestResolvedTime;
-        Long lastResolvedTime = lastResolvedProp != null ? Long.parseLong(lastResolvedProp) : 0;
-        return lastResolvedTime;
+    private ModuleRevisionMetadata getCacheProperties(ModuleRevisionId mrid) {
+        WharfCacheManager cacheManager = (WharfCacheManager) getRepositoryCacheManager();
+        return cacheManager.getMetadataHandler().getModuleRevisionMetadata(mrid);
+    }
+
+    private long getLastResolvedTime(ModuleRevisionMetadata mrm) {
+        String lastResolvedProp = mrm.getLatestResolvedTime();
+        return lastResolvedProp != null ? Long.parseLong(lastResolvedProp) : 0L;
+    }
+
+    private long getLastResolvedTime(ModuleRevisionId mrid) {
+        RepositoryCacheManager cacheManager = getRepositoryCacheManager();
+        if (cacheManager instanceof ModuleMetadataManager) {
+            return ((ModuleMetadataManager)cacheManager).getLastResolvedTime(mrid);
+        }
+        return 0L;
+    }
+
+    private boolean hasModuleMetadataManager() {
+        return getRepositoryCacheManager() instanceof ModuleMetadataManager;
     }
 
     @Override
