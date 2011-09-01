@@ -811,7 +811,7 @@ public class WharfCacheManager implements RepositoryCacheManager, IvySettingsAwa
                                     artMd.sha1 = wharfUrlResource.getSha1();
                                 }
                             } else {
-                                Message.warn("Using the Wharf cache with non Wharf resources!");
+                                Message.info("Using the Wharf cache with non Wharf resources!");
                                 if (WharfUtils.isEmptyString(artMd.md5)) {
                                     artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
                                 }
