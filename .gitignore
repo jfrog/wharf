@@ -9,10 +9,15 @@
 /buildSrc/build
 /out
 
-# wharf-core
-/wharf-core/build
-/wharf-core/*.iml
-/wharf-core/out
+# layout-mapper
+/layout-mapper/build
+/layout-mapper/*.iml
+/layout-mapper/out
+
+# wharf-repository
+/wharf-repository/build
+/wharf-repository/*.iml
+/wharf-repository/out
 
 # wharf-core
 /wharf-resolver/build

@@ -1,3 +1,4 @@
 rootProject.name = 'wharf'
 
-include 'wharf-core', 'wharf-resolver'
+include 'layout-mapper', 'wharf-repository', 'wharf-resolver'
+
