@@ -72,7 +72,7 @@ public class WharfCacheManagerTest {
         artifact =
                 ArtifactMetadata.fillResolverId(artifact,
                         cacheManager.getResolverHandler().getResolver(settings.getDefaultResolver()).getId());
-        cacheManager.saveArtifactOrigin(artifact, origin);
+        cacheManager.saveArtifactMetadata(artifact, origin, null);
     }
 
     @After
@@ -95,7 +95,7 @@ public class WharfCacheManagerTest {
 
     @Test
     public void testUniqueness() {
-        cacheManager.saveArtifactOrigin(artifact, origin);
+        cacheManager.saveArtifactMetadata(artifact, origin, null);
 
         artifact = createArtifact("org1", "module", "rev", "name", "type", "ext");
         ArtifactOrigin found = cacheManager.getSavedArtifactOrigin(artifact);

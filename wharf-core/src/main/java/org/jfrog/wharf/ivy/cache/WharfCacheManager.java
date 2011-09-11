@@ -425,7 +425,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
         }
     }
 
-    public void saveArtifactOrigin(Artifact artifact, ArtifactOrigin origin) {
+    public void saveArtifactMetadata(Artifact artifact, ArtifactOrigin origin, File archiveFile) {
         // should always be called with a lock on module metadata artifact
         ModuleRevisionId mrid = artifact.getModuleRevisionId();
         ModuleRevisionMetadata mrm = getMetadataHandler().getModuleRevisionMetadata(mrid);
@@ -435,6 +435,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
             mrm.latestResolvedTime = String.valueOf(System.currentTimeMillis());
         }
         ArtifactMetadata artMd = new ArtifactMetadata(artifact, origin);
+        fillChecksums(artMd, archiveFile);
         mrm.artifactMetadata.add(artMd);
         getMetadataHandler().saveModuleRevisionMetadata(mrid, mrm);
     }
@@ -778,7 +779,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
                         origin = new ArtifactOrigin(artifact, artifactRef.getResource().isLocal(),
                                 artifactRef.getResource().getName());
                         if (useOrigin && artifactRef.getResource().isLocal()) {
-                            saveArtifactOrigin(artifact, origin);
+                            saveArtifactMetadata(artifact, origin, archiveFile);
                             archiveFile = getArchiveFileInCache(artifact, origin);
                             adr.setDownloadStatus(DownloadStatus.NO);
                             adr.setSize(archiveFile.length());
@@ -798,30 +799,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
                             Resource resource = artifactRef.getResource();
                             resourceDownloader.download(artifact, resource, archiveFile);
                             adr.setSize(archiveFile.length());
-                            saveArtifactOrigin(artifact, origin);
-                            ModuleRevisionMetadata metadata =
-                                    getMetadataHandler().getModuleRevisionMetadata(artifact.getModuleRevisionId());
-                            ArtifactMetadata artMd = getMetadataHandler().getArtifactMetadata(artifact);
-                            if (resource instanceof WharfUrlResource) {
-                                WharfUrlResource wharfUrlResource = (WharfUrlResource) resource;
-                                if (WharfUtils.isEmptyString(artMd.md5)) {
-                                    artMd.md5 = wharfUrlResource.getMd5();
-                                }
-                                if (WharfUtils.isEmptyString(artMd.sha1)) {
-                                    artMd.sha1 = wharfUrlResource.getSha1();
-                                }
-                            } else {
-                                Message.info("Using the Wharf cache with non Wharf resources!");
-                                if (WharfUtils.isEmptyString(artMd.md5)) {
-                                    artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
-                                }
-                                if (WharfUtils.isEmptyString(artMd.sha1)) {
-                                    artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
-                                }
-                            }
-                            metadata.artifactMetadata.remove(artMd);
-                            metadata.artifactMetadata.add(artMd);
-                            getMetadataHandler().saveModuleRevisionMetadata(artifact.getModuleRevisionId(), metadata);
+                            saveArtifactMetadata(artifact, origin, archiveFile);
                             adr.setDownloadTimeMillis(System.currentTimeMillis() - start);
                             adr.setDownloadStatus(DownloadStatus.SUCCESSFUL);
                             adr.setArtifactOrigin(origin);
@@ -844,6 +822,22 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
             return adr;
         } finally {
             getMetadataHandler().unlockMetadataArtifact(mrid);
+        }
+    }
+
+    private void fillChecksums(ArtifactMetadata artMd, File archiveFile) {
+        if (archiveFile != null) {
+            try {
+            if (WharfUtils.isEmptyString(artMd.md5)) {
+                    artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
+            }
+            if (WharfUtils.isEmptyString(artMd.sha1)) {
+                artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
+            }
+            } catch (IOException e) {
+                Message.error("Could not calculate checksums of file " + archiveFile.getAbsolutePath() +
+                        " due to:" + e.getMessage());
+            }
         }
     }
 
@@ -1044,7 +1038,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
                         md.getMetadataArtifact(), options.getNamespace().getToSystemTransformer());
                 transformedMetadataArtifact = ArtifactMetadata.fillResolverId(transformedMetadataArtifact,
                         getResolverHandler().getResolver(resolver).getId());
-                saveArtifactOrigin(transformedMetadataArtifact, report.getArtifactOrigin());
+                saveArtifactMetadata(transformedMetadataArtifact, report.getArtifactOrigin(), report.getLocalFile());
 
                 return new ResolvedModuleRevision(resolver, resolver, md, madr);
             } catch (IOException ex) {

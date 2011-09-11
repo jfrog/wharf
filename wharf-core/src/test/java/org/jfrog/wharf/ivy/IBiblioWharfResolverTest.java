@@ -198,7 +198,7 @@ public class IBiblioWharfResolverTest extends AbstractDependencyResolverTest {
         WharfUrlHandler.tracer = myTracer;
         IBiblioWharfResolver resolver = createIBiblioResolver(RGO_NAME, RGO_ROOT);
         ModuleRevisionId mrid = ModuleRevisionId.newInstance("junit", "junit", "4.8.2");
-        downloadAndCheck(mrid, resolver, 3);
+        downloadAndCheck(mrid, resolver, 2, 3);
         myTracer.check();
         assertEquals(8, myTracer.counter.size());
         downloadAndCheck(mrid, resolver, 0);

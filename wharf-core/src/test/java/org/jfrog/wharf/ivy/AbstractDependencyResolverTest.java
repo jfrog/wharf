@@ -80,12 +80,18 @@ public class AbstractDependencyResolverTest {
         assertEquals(nbDownload, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
     }
 
-    protected void downloadAndCheck(ModuleRevisionId mrid, DependencyResolver resolver, int nbDownload) throws ParseException {
+    protected void downloadAndCheck(ModuleRevisionId mrid, DependencyResolver resolver, int min, int max) throws ParseException {
         ResolvedModuleRevision rmr;
         rmr = resolver.getDependency(new DefaultDependencyDescriptor(mrid, false), defaultSettings.data);
         assertNotNull(rmr);
         DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
-        assertEquals(nbDownload, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
+        int nbDownload = dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length;
+        assertTrue("The number of downloads "+nbDownload+" should be at least "+min, nbDownload >= min);
+        assertTrue("The number of downloads "+nbDownload+" should be at most "+max, nbDownload <= max);
+    }
+
+    protected void downloadAndCheck(ModuleRevisionId mrid, DependencyResolver resolver, int nbDownload) throws ParseException {
+        downloadAndCheck(mrid, resolver, nbDownload, nbDownload);
     }
 
     protected FileSystemWharfResolver createFileSystemResolver(String resolverName, String repoName) {
