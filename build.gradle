@@ -55,7 +55,6 @@ artifactory {
 subprojects {
     apply plugin: 'maven'
     apply plugin: 'java'
-    apply plugin: 'groovy'
 
     version = new Version(it)
     status = version.getStatus()
@@ -95,6 +94,8 @@ subprojects {
 }
 
 project('layout-mapper') {
+    apply plugin: 'groovy'
+
     description = 'Support artifact to path repository layout map and transform'
 
     dependencies {
