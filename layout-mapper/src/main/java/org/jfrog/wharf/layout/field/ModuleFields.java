@@ -12,13 +12,13 @@ package org.jfrog.wharf.layout.field;
  * @author Fred Simon
  */
 public enum ModuleFields implements FieldDefinition {
-    org(new OrgConverter(), "organisation", "organization", "group", "groupId"),
-    orgPath(new OrgPathConverter(), "groupPath"),
-    module("moduleName");
+    org(new OrgFieldProvider(), "organisation", "organization", "group", "groupId"),
+    orgPath(new OrgPathFieldProvider(), "groupPath"),
+    module("moduleName", "artifactId");
 
     final FieldDefinition delegate;
 
-    ModuleFields(FieldConverter converter, String... altNames) {
+    ModuleFields(FieldValueProvider converter, String... altNames) {
         delegate = new DefaultFieldDefinition(name(), converter, altNames);
     }
 
@@ -37,7 +37,12 @@ public enum ModuleFields implements FieldDefinition {
     }
 
     @Override
-    public FieldConverter converter() {
-        return delegate.converter();
+    public FieldValueProvider provider() {
+        return delegate.provider();
+    }
+
+    @Override
+    public String defaultRegex() {
+        return ".*";
     }
 }

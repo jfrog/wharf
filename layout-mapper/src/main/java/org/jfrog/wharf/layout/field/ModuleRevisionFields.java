@@ -14,15 +14,15 @@ package org.jfrog.wharf.layout.field;
  * @author Fred Simon
  */
 public enum ModuleRevisionFields implements FieldDefinition {
-    revision,
-    baseRev("baseRevision"),
-    status,
+    revision(new RevisionFieldProvider(), "version"),
+    baseRev(new BaseRevisionFieldProvider(), "baseRevision"),
+    status(new StatusFieldProvider()),
     folderItegRev("folderIntegrationRevision", "folderIntegRev", "folderIntegrationRev"),
     fileItegRev("fileIntegrationRevision", "fileIntegRev", "fileIntegrationRev");
 
     final FieldDefinition delegate;
 
-    ModuleRevisionFields(FieldConverter converter, String... altNames) {
+    ModuleRevisionFields(FieldValueProvider converter, String... altNames) {
         delegate = new DefaultFieldDefinition(name(), converter, altNames);
     }
 
@@ -41,7 +41,12 @@ public enum ModuleRevisionFields implements FieldDefinition {
     }
 
     @Override
-    public FieldConverter converter() {
-        return delegate.converter();
+    public FieldValueProvider provider() {
+        return delegate.provider();
+    }
+
+    @Override
+    public String defaultRegex() {
+        return ".*";
     }
 }

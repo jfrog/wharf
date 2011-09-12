@@ -3,6 +3,9 @@ package org.jfrog.wharf.layout.base;
 import org.apache.commons.lang.StringUtils;
 import org.jfrog.wharf.layout.ArtifactInfo;
 import org.jfrog.wharf.layout.ArtifactPathMapper;
+import org.jfrog.wharf.layout.field.ArtifactFields;
+import org.jfrog.wharf.layout.field.ModuleFields;
+import org.jfrog.wharf.layout.field.ModuleRevisionFields;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -18,12 +21,12 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
     private final static Set<String> MANDATORY_FIELDS = new HashSet<String>();
 
     static {
-        MANDATORY_FIELDS.add("org");
-        MANDATORY_FIELDS.add("revision");
-        MANDATORY_FIELDS.add("baseRev");
-        MANDATORY_FIELDS.add("status");
-        MANDATORY_FIELDS.add("module");
-        MANDATORY_FIELDS.add("ext");
+        MANDATORY_FIELDS.add(ModuleFields.org.id());
+        MANDATORY_FIELDS.add(ModuleFields.module.id());
+        MANDATORY_FIELDS.add(ModuleRevisionFields.baseRev.id());
+        MANDATORY_FIELDS.add(ModuleRevisionFields.status.id());
+        MANDATORY_FIELDS.add(ModuleRevisionFields.revision.id());
+        MANDATORY_FIELDS.add(ArtifactFields.ext.id());
     }
 
     private final String rootPath;
@@ -38,8 +41,9 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
 
     @Override
     public ArtifactInfo fromMap(Map<String, String> map) {
-
-        return null;
+        MavenArtifactInfo result = new MavenArtifactInfo();
+        result.putAll(map);
+        return result;
     }
 
     @Override
@@ -69,13 +73,8 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
     }
 
     @Override
-    public boolean isValid(String path) {
-        return true;
-    }
-
-    @Override
     public ArtifactInfo fromPath(String path) {
-        return null;
+        throw new UnsupportedOperationException("TODO");
     }
 
 }

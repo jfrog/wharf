@@ -8,13 +8,13 @@ package org.jfrog.wharf.layout.field;
  */
 public class DefaultFieldDefinition implements FieldDefinition {
     final String[] ids;
-    final FieldConverter converter;
+    final FieldValueProvider converter;
 
-    DefaultFieldDefinition(String id, FieldConverter converter, String... altNames) {
-        if (converter == null) {
+    public DefaultFieldDefinition(String id, FieldValueProvider converter, String... altNames) {
+        if (converter != null) {
             this.converter = converter;
         } else {
-            this.converter = new EqualConverter(this);
+            this.converter = new BaseFieldProvider(this);
         }
         ids = new String[altNames.length + 1];
         ids[0] = id;
@@ -32,7 +32,12 @@ public class DefaultFieldDefinition implements FieldDefinition {
     }
 
     @Override
-    public FieldConverter converter() {
+    public FieldValueProvider provider() {
         return converter;
+    }
+
+    @Override
+    public String defaultRegex() {
+        return ".*";
     }
 }

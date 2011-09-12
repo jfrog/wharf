@@ -13,14 +13,14 @@ package org.jfrog.wharf.layout.field;
  * @author Fred Simon
  */
 public enum ArtifactFields implements FieldDefinition {
-    artifact("artifactName"),
-    classifier,
-    ext("extension"),
-    type;
+    artifact(new ArtifactNameFieldProvider(), "artifactName"),
+    classifier(new ClassifierFieldProvider()),
+    ext(new ExtensionFieldProvider(), "extension"),
+    type(new TypeFieldProvider());
 
     final FieldDefinition delegate;
 
-    ArtifactFields(FieldConverter converter, String... altNames) {
+    ArtifactFields(FieldValueProvider converter, String... altNames) {
         delegate = new DefaultFieldDefinition(name(), converter, altNames);
     }
 
@@ -39,7 +39,12 @@ public enum ArtifactFields implements FieldDefinition {
     }
 
     @Override
-    public FieldConverter converter() {
-        return delegate.converter();
+    public FieldValueProvider provider() {
+        return delegate.provider();
+    }
+
+    @Override
+    public String defaultRegex() {
+        return ".*";
     }
 }

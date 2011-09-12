@@ -11,5 +11,7 @@ public interface FieldDefinition {
 
     String[] fieldNames();
 
-    FieldConverter converter();
+    FieldValueProvider provider();
+
+    String defaultRegex();
 }

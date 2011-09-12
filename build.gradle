@@ -55,6 +55,7 @@ artifactory {
 subprojects {
     apply plugin: 'maven'
     apply plugin: 'java'
+    apply plugin: 'groovy'
 
     version = new Version(it)
     status = version.getStatus()
@@ -99,7 +100,10 @@ project('layout-mapper') {
     dependencies {
         compile group: 'com.google.guava', name: 'guava', version: 'r09'
         compile group: 'commons-lang', name: 'commons-lang', version: '2.6'
+        compile group: 'javax.annotation', name: 'jsr250-api', version: '1.0'
+        groovy 'org.codehaus.groovy:groovy-all:1.7.10@jar'
         testCompile group: 'junit', name: 'junit', version: '4.8.1'
+        testCompile group: 'org.spockframework', name: 'spock-core', version: '0.5-groovy-1.7'
     }
 }
 

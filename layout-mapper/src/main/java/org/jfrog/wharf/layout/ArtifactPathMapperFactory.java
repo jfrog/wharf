@@ -10,4 +10,6 @@ import java.util.Map;
  */
 public interface ArtifactPathMapperFactory {
     ArtifactPathMapper create(Map<String, String> configParams);
+
+    ArtifactPathMapper createMavenMapper(String rootPath);
 }
