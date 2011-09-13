@@ -12,6 +12,7 @@ package org.jfrog.wharf.layout.field;
  * @author Fred Simon
  */
 public enum ModuleFields implements FieldDefinition {
+    originalMapperName(),
     org(new OrgFieldProvider(), "organisation", "organization", "group", "groupId"),
     orgPath(new OrgPathFieldProvider(), "groupPath"),
     module("moduleName", "artifactId");

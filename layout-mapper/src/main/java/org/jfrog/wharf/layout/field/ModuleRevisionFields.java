@@ -17,8 +17,8 @@ public enum ModuleRevisionFields implements FieldDefinition {
     revision(new RevisionFieldProvider(), "version"),
     baseRev(new BaseRevisionFieldProvider(), "baseRevision"),
     status(new StatusFieldProvider()),
-    folderItegRev("folderIntegrationRevision", "folderIntegRev", "folderIntegrationRev"),
-    fileItegRev("fileIntegrationRevision", "fileIntegRev", "fileIntegrationRev");
+    folderItegRev(new FolderIntegrationRevisionFieldProvider(), "folderIntegrationRevision", "folderIntegRev", "folderIntegrationRev"),
+    fileItegRev(new FileIntegrationRevisionFieldProvider(), "fileIntegrationRevision", "fileIntegRev", "fileIntegrationRev");
 
     final FieldDefinition delegate;
 

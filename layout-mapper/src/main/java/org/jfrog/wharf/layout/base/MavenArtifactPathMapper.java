@@ -6,6 +6,9 @@ import org.jfrog.wharf.layout.ArtifactPathMapper;
 import org.jfrog.wharf.layout.field.ArtifactFields;
 import org.jfrog.wharf.layout.field.ModuleFields;
 import org.jfrog.wharf.layout.field.ModuleRevisionFields;
+import org.jfrog.wharf.layout.regex.NamedMatcher;
+import org.jfrog.wharf.layout.regex.NamedPattern;
+import org.jfrog.wharf.layout.regex.RepoLayoutPatterns;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -18,6 +21,7 @@ import java.util.Set;
  * @author Fred Simon
  */
 public class MavenArtifactPathMapper implements ArtifactPathMapper {
+
     private final static Set<String> MANDATORY_FIELDS = new HashSet<String>();
 
     static {
@@ -29,6 +33,7 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
         MANDATORY_FIELDS.add(ArtifactFields.ext.id());
     }
 
+    private final NamedPattern pathRegexPattern;
     private final String rootPath;
 
     public MavenArtifactPathMapper() {
@@ -37,6 +42,8 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
 
     public MavenArtifactPathMapper(String rootPath) {
         this.rootPath = rootPath;
+        String regex = RepoLayoutPatterns.generateNamedRegexFromLayoutPattern(RepoLayoutPatterns.MAVEN_2_PATTERN, true);
+        this.pathRegexPattern = NamedPattern.compile(regex);
     }
 
     @Override
@@ -74,7 +81,18 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
 
     @Override
     public ArtifactInfo fromPath(String path) {
-        throw new UnsupportedOperationException("TODO");
+        if (StringUtils.isBlank(path)) {
+            throw new IllegalArgumentException("Cannot construct an artifact info object from a blank item path.");
+        }
+        if (StringUtils.isNotBlank(rootPath) && path.startsWith(rootPath)) {
+            path = path.substring(rootPath.length());
+        }
+        path = LayoutUtils.convertToValidField(path);
+        NamedMatcher namedMatcher = this.pathRegexPattern.matcher(path);
+        if (namedMatcher.matches()) {
+            return fromMap(namedMatcher.namedGroups());
+        }
+        return new MavenArtifactInfo();
     }
 
 }
