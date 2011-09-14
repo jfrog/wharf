@@ -4,6 +4,15 @@ import com.google.common.collect.ImmutableMap;
 import org.jfrog.wharf.layout.field.definition.ArtifactFields;
 import org.jfrog.wharf.layout.field.definition.ModuleFields;
 import org.jfrog.wharf.layout.field.definition.ModuleRevisionFields;
+import org.jfrog.wharf.layout.field.ivy.IvyArtifactNameFieldProvider;
+import org.jfrog.wharf.layout.field.ivy.IvyFileIntegrationRevisionFieldProvider;
+import org.jfrog.wharf.layout.field.ivy.IvyFolderIntegrationRevisionFieldProvider;
+import org.jfrog.wharf.layout.field.ivy.IvyVersionPopulator;
+import org.jfrog.wharf.layout.field.maven.MavenFileIntegrationRevisionFieldProvider;
+import org.jfrog.wharf.layout.field.maven.MavenArtifactNameFieldProvider;
+import org.jfrog.wharf.layout.field.maven.MavenFolderIntegrationRevisionFieldProvider;
+import org.jfrog.wharf.layout.field.maven.MavenVersionPopulator;
+import org.jfrog.wharf.layout.field.provider.*;
 
 /**
  * Date: 9/12/11
@@ -16,17 +25,17 @@ public abstract class DefaultFieldDefinitions {
     public static final ImmutableMap<String, FieldDefinition> moduleRevisionFieldDefinitions;
     public static final ImmutableMap<String, FieldDefinition> artifactFieldDefinitions;
     public static final ImmutableMap<String, FieldValueProvider> mavenValueProviders;
+    public static final ImmutableMap<String, FieldValueProvider> ivyValueProviders;
 
     static {
         ImmutableMap.Builder<String, FieldDefinition> moduleBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<String, FieldDefinition> moduleRevisionBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<String, FieldDefinition> artifactBuilder = ImmutableMap.builder();
-        ImmutableMap.Builder<String, FieldValueProvider> mavenProvidersBuilder = ImmutableMap.builder();
         for (ModuleFields fieldDefinition : ModuleFields.values()) {
             for (String fieldName : fieldDefinition.fieldNames()) {
-               moduleBuilder.put(fieldName, fieldDefinition);
-               moduleRevisionBuilder.put(fieldName, fieldDefinition);
-               artifactBuilder.put(fieldName, fieldDefinition);
+                moduleBuilder.put(fieldName, fieldDefinition);
+                moduleRevisionBuilder.put(fieldName, fieldDefinition);
+                artifactBuilder.put(fieldName, fieldDefinition);
             }
         }
         for (ModuleRevisionFields fieldDefinition : ModuleRevisionFields.values()) {
@@ -44,20 +53,52 @@ public abstract class DefaultFieldDefinitions {
         moduleRevisionFieldDefinitions = moduleRevisionBuilder.build();
         artifactFieldDefinitions = artifactBuilder.build();
 
-        mavenProvidersBuilder.put(ModuleFields.org.id(), new OrgFieldProvider());
-        mavenProvidersBuilder.put(ModuleFields.orgPath.id(), new OrgPathFieldProvider());
-        mavenProvidersBuilder.put(ModuleFields.module.id(), new ModuleFieldProvider());
-        mavenProvidersBuilder.put(ModuleRevisionFields.revision.id(), new RevisionFieldProvider());
-        mavenProvidersBuilder.put(ModuleRevisionFields.baseRev.id(), new BaseRevisionFieldProvider());
-        mavenProvidersBuilder.put(ModuleRevisionFields.status.id(), new StatusFieldProvider());
-        mavenProvidersBuilder.put(ModuleRevisionFields.folderItegRev.id(), new FolderIntegrationRevisionFieldProvider());
-        mavenProvidersBuilder.put(ModuleRevisionFields.fileItegRev.id(), new FileIntegrationRevisionFieldProvider());
-        mavenProvidersBuilder.put(ArtifactFields.artifact.id(), new ArtifactNameFieldProvider());
-        mavenProvidersBuilder.put(ArtifactFields.classifier.id(), new ClassifierFieldProvider());
-        mavenProvidersBuilder.put(ArtifactFields.ext.id(), new ExtensionFieldProvider());
-        mavenProvidersBuilder.put(ArtifactFields.type.id(), new TypeFieldProvider());
+        ProvidersBuilder mavenProvidersBuilder = new ProvidersBuilder();
+        MavenVersionPopulator mavenVersionPopulator = new MavenVersionPopulator(null, null);
+
+        mavenProvidersBuilder.add(new OrgFieldProvider());
+        mavenProvidersBuilder.add(new OrgPathFieldProvider());
+        mavenProvidersBuilder.add(new ModuleFieldProvider());
+        mavenProvidersBuilder.add(new AnyRevisionFieldProvider(ModuleRevisionFields.revision, mavenVersionPopulator));
+        mavenProvidersBuilder.add(new AnyRevisionFieldProvider(ModuleRevisionFields.baseRev, mavenVersionPopulator));
+        mavenProvidersBuilder.add(new AnyRevisionFieldProvider(ModuleRevisionFields.status, mavenVersionPopulator));
+        mavenProvidersBuilder.add(new MavenFolderIntegrationRevisionFieldProvider(mavenVersionPopulator));
+        mavenProvidersBuilder.add(new MavenFileIntegrationRevisionFieldProvider(mavenVersionPopulator));
+        mavenProvidersBuilder.add(new MavenArtifactNameFieldProvider());
+        mavenProvidersBuilder.add(new ClassifierFieldProvider());
+        mavenProvidersBuilder.add(new ExtensionFieldProvider());
+        mavenProvidersBuilder.add(new TypeFieldProvider());
 
         mavenValueProviders = mavenProvidersBuilder.build();
+
+        ProvidersBuilder ivyProvidersBuilder = new ProvidersBuilder();
+        IvyVersionPopulator ivyVersionPopulator = new IvyVersionPopulator(null, null);
+
+        ivyProvidersBuilder.add(new OrgFieldProvider());
+        ivyProvidersBuilder.add(new OrgPathFieldProvider());
+        ivyProvidersBuilder.add(new ModuleFieldProvider());
+        ivyProvidersBuilder.add(new AnyRevisionFieldProvider(ModuleRevisionFields.revision, ivyVersionPopulator));
+        ivyProvidersBuilder.add(new AnyRevisionFieldProvider(ModuleRevisionFields.baseRev, ivyVersionPopulator));
+        ivyProvidersBuilder.add(new AnyRevisionFieldProvider(ModuleRevisionFields.status, ivyVersionPopulator));
+        ivyProvidersBuilder.add(new IvyFolderIntegrationRevisionFieldProvider(ivyVersionPopulator));
+        ivyProvidersBuilder.add(new IvyFileIntegrationRevisionFieldProvider(ivyVersionPopulator));
+        ivyProvidersBuilder.add(new IvyArtifactNameFieldProvider());
+        ivyProvidersBuilder.add(new ClassifierFieldProvider());
+        ivyProvidersBuilder.add(new ExtensionFieldProvider());
+        ivyProvidersBuilder.add(new TypeFieldProvider());
+
+        ivyValueProviders = ivyProvidersBuilder.build();
     }
 
+    static class ProvidersBuilder {
+        ImmutableMap.Builder<String, FieldValueProvider> builder = ImmutableMap.builder();
+
+        void add(FieldValueProvider provider) {
+            builder.put(provider.id(), provider);
+        }
+
+        public ImmutableMap<String, FieldValueProvider> build() {
+            return builder.build();
+        }
+    }
 }

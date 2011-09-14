@@ -1,6 +1,8 @@
-package org.jfrog.wharf.layout.field;
+package org.jfrog.wharf.layout.field.provider;
 
 import org.apache.commons.lang.StringUtils;
+import org.jfrog.wharf.layout.field.FieldDefinition;
+import org.jfrog.wharf.layout.field.FieldValueProvider;
 
 import java.util.Map;
 
@@ -43,7 +45,7 @@ public class BaseFieldProvider implements FieldValueProvider {
     }
 
     @Override
-    public String defaultRegex() {
+    public String regex() {
         // By default anything but /
         return "[^/]+";
     }

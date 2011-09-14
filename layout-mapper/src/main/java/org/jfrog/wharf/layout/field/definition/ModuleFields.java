@@ -1,10 +1,6 @@
 package org.jfrog.wharf.layout.field.definition;
 
 import org.jfrog.wharf.layout.field.FieldDefinition;
-import org.jfrog.wharf.layout.field.FieldValueProvider;
-import org.jfrog.wharf.layout.field.OrgFieldProvider;
-import org.jfrog.wharf.layout.field.OrgPathFieldProvider;
-import org.jfrog.wharf.layout.field.definition.DefaultFieldDefinition;
 
 /**
  * Module level fields:<ol>

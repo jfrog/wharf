@@ -14,9 +14,12 @@ import java.util.regex.Pattern;
  * @author Fred Simon
  */
 public class RepoLayoutPatterns {
-    public static final String REVISION_PATTERN = "[baseRev<[^/]+?>](-[fileItegRev<SNAPSHOT|(?:(?:[0-9]{8}.[0-9]{6})-(?:[0-9]+))>])";
+    public static final String MAVEN_REVISION_PATTERN = "[baseRev<[^/]+?>](-[fileItegRev<SNAPSHOT|(?:(?:[0-9]{8}.[0-9]{6})-(?:[0-9]+))>])";
     public static final String MAVEN_2_PATTERN = "[orgPath<.+?>]/[module<[^/]+>]/[baseRev<[^/]+?>](-[folderItegRev<SNAPSHOT>])/" +
             "[module<[^/]+>]-[baseRev<[^/]+?>](-[fileItegRev<SNAPSHOT|(?:(?:[0-9]{8}.[0-9]{6})-(?:[0-9]+))>])(-[classifier<(?:(?!\\d))[^\\./]+>]).[ext<[^\\-/]+>]";
+    public static final String IVY_REVISION_PATTERN = "[baseRev<[^/]+?>](-[fileItegRev<\\d{14}>])";
+    public static final String IVY_PATTERN = "[orgPath<.+?>]/[module<[^/]+>]/[baseRev<[^/]+?>](-[fileItegRev<\\d{14}>])/" +
+            "[module<[^/]+>]-[baseRev<[^/]+?>](-[fileItegRev<\\d{14}>])(-[classifier<(?:(?!\\d))[^\\./]+>]).[ext<[^\\-/]+>]";
 
     private static final Pattern OPTIONAL_AREA_PATTERN = Pattern.compile("\\([^\\(]*\\)");
     private static final Pattern REPLACED_OPTIONAL_TOKEN_PATTERN = Pattern.compile("\\([^\\[\\(]*\\)");

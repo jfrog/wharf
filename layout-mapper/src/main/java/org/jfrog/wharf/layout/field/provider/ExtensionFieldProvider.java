@@ -1,4 +1,6 @@
-package org.jfrog.wharf.layout.field;
+package org.jfrog.wharf.layout.field.provider;
+
+import org.jfrog.wharf.layout.field.provider.BaseFieldProvider;
 
 import java.util.Map;
 

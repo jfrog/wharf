@@ -1,6 +1,6 @@
-package org.jfrog.wharf.layout.field;
+package org.jfrog.wharf.layout.field.ivy;
 
-import org.apache.commons.lang.StringUtils;
+import org.jfrog.wharf.layout.field.VersionFieldPopulator;
 import org.jfrog.wharf.layout.regex.NamedMatcher;
 import org.jfrog.wharf.layout.regex.NamedPattern;
 
@@ -10,32 +10,33 @@ import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jfrog.wharf.layout.base.LayoutUtils.*;
 import static org.jfrog.wharf.layout.field.definition.ModuleRevisionFields.*;
-import static org.jfrog.wharf.layout.regex.RepoLayoutPatterns.REVISION_PATTERN;
+import static org.jfrog.wharf.layout.regex.RepoLayoutPatterns.IVY_REVISION_PATTERN;
+import static org.jfrog.wharf.layout.regex.RepoLayoutPatterns.MAVEN_REVISION_PATTERN;
 import static org.jfrog.wharf.layout.regex.RepoLayoutPatterns.generateNamedRegexFromLayoutPattern;
 
 /**
- * Date: 9/13/11
- * Time: 5:03 PM
+ * Date: 9/14/11
+ * Time: 5:08 PM
  *
  * @author Fred Simon
  */
-public class AnyRevisionFieldProvider extends BaseFieldProvider {
-    protected NamedPattern namedPattern;
+public class IvyVersionPopulator implements VersionFieldPopulator {
+    private final NamedPattern namedPattern;
 
-    public AnyRevisionFieldProvider(FieldDefinition fieldDefinition) {
-        super(fieldDefinition);
-        String regex = generateNamedRegexFromLayoutPattern(REVISION_PATTERN, true);
-        namedPattern = NamedPattern.compile(regex);
+    public IvyVersionPopulator(String versionPattern, Map<String, String> patterns) {
+        namedPattern = NamedPattern.compile(generateNamedRegexFromLayoutPattern(IVY_REVISION_PATTERN, true));
     }
 
     /**
      * Analyzed the fields to find out if it's an integration version.
      * NOTE: The status field is not the only one providing this info!
-     * TODO: May be unifying the status field is a good idea? Since status!=integration can still returns integration=true is very confusing
+     * TODO: May be unifying the status field is a good idea?
+     * TODO: Since status!=integration can still returns integration=true is very confusing
      *
      * @param from the artifact fields
      * @return true if declared integration, false otherwise
      */
+    @Override
     public boolean isIntegration(Map<String, String> from) {
         return STATUS_INTEGRATION.equals(from.get(status.id()))
                 || isNotBlank(from.get(fileItegRev.id()))
@@ -43,33 +44,15 @@ public class AnyRevisionFieldProvider extends BaseFieldProvider {
     }
 
     @Override
-    public void populate(Map<String, String> from) {
-        // All the version fields need to be coherent
+    public void populateFromRevision(Map<String, String> from) {
         String currentRevision = from.get(revision.id());
-        String currentBaseRev = from.get(baseRev.id());
-
-        if (isBlank(currentBaseRev) && isBlank(currentRevision)) {
-            // log.warn("Could not find version if baseRev and revision are empty");
-            return;
-        }
-
-        if (isBlank(currentRevision)) {
-            populateFromBaseRevision(from);
-        } else if (from.get(status.id()) == null || (isIntegration(from) && from.get(fileItegRev.id()) == null)) {
-            populateFromRegex(from);
-        }
-    }
-
-    private void populateFromRegex(Map<String, String> from) {
-        String currentRevision = from.get(revision.id());
-        String currentBaseRev = from.get(baseRev.id());
 
         NamedMatcher matcher = namedPattern.matcher(currentRevision);
         if (matcher.matches()) {
             Map<String, String> foundMap = matcher.namedGroups();
 
             String foundBaseRev = convertToValidField(foundMap.get(baseRev.id()));
-            if (currentBaseRev == null) {
+            if (from.get(baseRev.id()) == null) {
                 from.put(baseRev.id(), foundBaseRev);
             }
 
@@ -88,10 +71,10 @@ public class AnyRevisionFieldProvider extends BaseFieldProvider {
         }
     }
 
-    private void populateFromBaseRevision(Map<String, String> from) {
-        String currentStatus = from.get(status.id());
+    @Override
+    public void populateFromBaseRevision(Map<String, String> from) {
         if (isIntegration(from)) {
-            if (currentStatus == null) {
+            if (from.get(status.id()) == null) {
                 from.put(status.id(), STATUS_INTEGRATION);
             }
             if (from.get(folderItegRev.id()) == null) {
@@ -102,7 +85,7 @@ public class AnyRevisionFieldProvider extends BaseFieldProvider {
             }
             from.put(revision.id(), getRevisionFromBaseAndIntegration(from));
         } else {
-            if (currentStatus == null) {
+            if (from.get(status.id()) == null) {
                 from.put(status.id(), STATUS_RELEASE);
             }
             from.put(folderItegRev.id(), "");
@@ -111,27 +94,9 @@ public class AnyRevisionFieldProvider extends BaseFieldProvider {
         }
     }
 
-    protected String getRevisionFromBaseAndIntegration(Map<String, String> from) {
+    @Override
+    public String getRevisionFromBaseAndIntegration(Map<String, String> from) {
         // TODO: Use the regex to generate the revision
         return from.get(baseRev.id()) + "-" + from.get(fileItegRev.id());
     }
-
-    @Override
-    public boolean isValid(Map<String, String> from) {
-        if (!super.isValid(from)) {
-            return false;
-        }
-        if (isIntegration(from)) {
-            return !STATUS_RELEASE.equals(from.get(status.id()))
-                    && isNotBlank(from.get(fileItegRev.id()))
-                    && SNAPSHOT.equals(from.get(folderItegRev.id()))
-                    && StringUtils.equals(getRevisionFromBaseAndIntegration(from), from.get(revision.id()));
-        } else {
-            return !STATUS_INTEGRATION.equals(from.get(status.id()))
-                    && isBlank(from.get(fileItegRev.id()))
-                    && isBlank(from.get(folderItegRev.id()))
-                    && StringUtils.equals(from.get(baseRev.id()), from.get(revision.id()));
-        }
-    }
-
 }

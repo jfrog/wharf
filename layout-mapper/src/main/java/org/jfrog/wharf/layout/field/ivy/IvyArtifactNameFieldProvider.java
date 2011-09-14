@@ -1,4 +1,6 @@
-package org.jfrog.wharf.layout.field;
+package org.jfrog.wharf.layout.field.ivy;
+
+import org.jfrog.wharf.layout.field.provider.BaseFieldProvider;
 
 import java.util.Map;
 
@@ -12,11 +14,11 @@ import static org.jfrog.wharf.layout.field.definition.ModuleFields.module;
  *
  * @author Fred Simon
  */
-public class ArtifactNameFieldProvider extends BaseFieldProvider {
+public class IvyArtifactNameFieldProvider extends BaseFieldProvider {
 
     private static final String IVY = "ivy";
 
-    public ArtifactNameFieldProvider() {
+    public IvyArtifactNameFieldProvider() {
         super(artifact);
     }
 

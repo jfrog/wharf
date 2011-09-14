@@ -26,5 +26,5 @@ public interface FieldValueProvider extends FieldDefinition {
      */
     boolean isValid(Map<String, String> from);
 
-    String defaultRegex();
+    String regex();
 }
