@@ -2,9 +2,9 @@ package org.jfrog.wharf.layout.field;
 
 import java.util.Map;
 
-import static org.jfrog.wharf.layout.field.ArtifactFields.artifact;
-import static org.jfrog.wharf.layout.field.ArtifactFields.type;
-import static org.jfrog.wharf.layout.field.ModuleFields.module;
+import static org.jfrog.wharf.layout.field.definition.ArtifactFields.artifact;
+import static org.jfrog.wharf.layout.field.definition.ArtifactFields.type;
+import static org.jfrog.wharf.layout.field.definition.ModuleFields.module;
 
 /**
  * Date: 9/11/11
@@ -21,10 +21,10 @@ public class ArtifactNameFieldProvider extends BaseFieldProvider {
     }
 
     @Override
-    public String extractFromOthers(Map<String, String> from) {
+    public void populate(Map<String, String> from) {
         if (IVY.equals(from.get(type.id()))) {
-            return IVY;
+            from.put(id(), IVY);
         }
-        return from.get(module.id());
+        from.put(id(), from.get(module.id()));
     }
 }

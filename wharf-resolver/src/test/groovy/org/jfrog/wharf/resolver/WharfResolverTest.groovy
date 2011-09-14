@@ -48,7 +48,7 @@ class WharfResolverTest extends Specification {
     }
 
     def timeoutInterval() {
-        def interval = new WharfResolverConfiguration.Interval(1000)
+        def interval = new IBiblioWharfResolver.Interval(1000)
 
         expect:
         interval.isCacheTimedOut(System.currentTimeMillis() - 5000)

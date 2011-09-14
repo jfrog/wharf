@@ -2,8 +2,10 @@ package org.jfrog.wharf.layout.field;
 
 import java.util.Map;
 
-import static org.jfrog.wharf.layout.field.ModuleFields.org;
-import static org.jfrog.wharf.layout.field.ModuleFields.orgPath;
+import static org.apache.commons.lang.StringUtils.isNotBlank;
+import static org.jfrog.wharf.layout.base.LayoutUtils.convertToValidField;
+import static org.jfrog.wharf.layout.field.definition.ModuleFields.org;
+import static org.jfrog.wharf.layout.field.definition.ModuleFields.orgPath;
 
 /**
  * Date: 9/11/11
@@ -17,7 +19,10 @@ public class OrgPathFieldProvider extends BaseFieldProvider {
     }
 
     @Override
-    public String extractFromOthers(Map<String, String> from) {
-        return convert(from.get(org.id()).replace('.', '/'));
+    public void populate(Map<String, String> from) {
+        String orgValue = from.get(org.id());
+        if (isNotBlank(orgValue)) {
+            from.put(id(), convertToValidField(orgValue.replace('.', '/')));
+        }
     }
 }

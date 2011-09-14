@@ -1,16 +1,9 @@
 package org.jfrog.wharf.layout.field;
 
-import org.jfrog.wharf.layout.base.LayoutUtils;
-import org.jfrog.wharf.layout.regex.NamedMatcher;
-import org.jfrog.wharf.layout.regex.NamedPattern;
-import org.jfrog.wharf.layout.regex.RepoLayoutPatterns;
-
 import java.util.Map;
 
-import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jfrog.wharf.layout.base.LayoutUtils.SNAPSHOT;
-import static org.jfrog.wharf.layout.base.LayoutUtils.STATUS_INTEGRATION;
-import static org.jfrog.wharf.layout.field.ModuleRevisionFields.*;
+import static org.jfrog.wharf.layout.field.definition.ModuleRevisionFields.folderItegRev;
 
 /**
  * Date: 9/11/11
@@ -18,17 +11,17 @@ import static org.jfrog.wharf.layout.field.ModuleRevisionFields.*;
  *
  * @author Fred Simon
  */
-public class FolderIntegrationRevisionFieldProvider extends AbstractRevisionFieldProvider {
+public class FolderIntegrationRevisionFieldProvider extends AnyRevisionFieldProvider {
 
     public FolderIntegrationRevisionFieldProvider() {
         super(folderItegRev);
     }
 
     @Override
-    public String extractFromOthers(Map<String, String> from) {
-        if (isIntegrationVersion(from)) {
-            return SNAPSHOT;
+    public void populate(Map<String, String> from) {
+        super.populate(from);
+        if (from.get(id()) == null && isIntegration(from)) {
+            from.put(id(), SNAPSHOT);
         }
-        return "";
     }
 }

@@ -1,14 +1,23 @@
 package org.jfrog.wharf.layout.base;
 
 import com.google.common.collect.Maps;
+import org.apache.commons.lang.StringUtils;
 import org.jfrog.wharf.layout.ArtifactInfo;
-import org.jfrog.wharf.layout.field.*;
+import org.jfrog.wharf.layout.field.BaseFieldProvider;
+import org.jfrog.wharf.layout.field.FieldDefinition;
+import org.jfrog.wharf.layout.field.FieldValueProvider;
+import org.jfrog.wharf.layout.field.definition.ArtifactFields;
+import org.jfrog.wharf.layout.field.definition.DefaultFieldDefinition;
+import org.jfrog.wharf.layout.field.definition.ModuleFields;
+import org.jfrog.wharf.layout.field.definition.ModuleRevisionFields;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import static org.jfrog.wharf.layout.base.LayoutUtils.convertToValidField;
 import static org.jfrog.wharf.layout.field.DefaultFieldDefinitions.artifactFieldDefinitions;
+import static org.jfrog.wharf.layout.field.DefaultFieldDefinitions.mavenValueProviders;
 
 /**
  * Date: 9/11/11
@@ -18,15 +27,19 @@ import static org.jfrog.wharf.layout.field.DefaultFieldDefinitions.artifactField
  */
 public class MavenArtifactInfo implements ArtifactInfo {
 
-    private final Map<String, FieldDefinition> customFieldsDefinitions = Maps.newHashMap();
+    private final Map<String, FieldValueProvider> customFieldsDefinitions = Maps.newHashMap();
     private final Map<String, String> fields = Maps.newHashMap();
+    private boolean populated = false;
 
-    protected FieldDefinition getFieldDefinition(String key) {
-        FieldDefinition fieldDefinition = customFieldsDefinitions.get(key);
-        if (fieldDefinition == null) {
-            return artifactFieldDefinitions.get(key);
+    protected FieldValueProvider getFieldProvider(String key) {
+        FieldValueProvider fieldValueProvider = customFieldsDefinitions.get(key);
+        if (fieldValueProvider == null) {
+            FieldDefinition fieldDefinition = artifactFieldDefinitions.get(key);
+            if (fieldDefinition != null) {
+                return mavenValueProviders.get(fieldDefinition.id());
+            }
         }
-        return fieldDefinition;
+        return fieldValueProvider;
     }
 
     @Override
@@ -35,19 +48,11 @@ public class MavenArtifactInfo implements ArtifactInfo {
             throw new IllegalArgumentException("Key cannot be null");
         }
         String k = key.toString();
-        FieldDefinition fieldDefinition = getFieldDefinition(k);
-        if (fieldDefinition == null) {
+        FieldValueProvider fieldProvider = getFieldProvider(k);
+        if (fieldProvider == null) {
             return null;
         }
-        String value = fields.get(fieldDefinition.id());
-        if (value == null) {
-            value = fieldDefinition.provider().extractFromOthers(fields);
-            if (value != null) {
-                // TODO: not sure I like changing map on get method ?!?
-                fields.put(fieldDefinition.id(), value);
-            }
-        }
-        return value;
+        return fields.get(fieldProvider.id());
     }
 
     @Override
@@ -55,12 +60,12 @@ public class MavenArtifactInfo implements ArtifactInfo {
         if (key == null) {
             throw new IllegalArgumentException("Key cannot be null");
         }
-        FieldDefinition fieldDefinition = getFieldDefinition(key);
-        if (fieldDefinition == null) {
-            fieldDefinition = new DefaultFieldDefinition(key, null);
-            customFieldsDefinitions.put(key, fieldDefinition);
+        FieldValueProvider fieldProvider = getFieldProvider(key);
+        if (fieldProvider == null) {
+            fieldProvider = new BaseFieldProvider(new DefaultFieldDefinition(false, key));
+            customFieldsDefinitions.put(key, fieldProvider);
         }
-        return fields.put(fieldDefinition.id(), fieldDefinition.provider().convert(value));
+        return fields.put(fieldProvider.id(), convertToValidField(value));
     }
 
     @Override
@@ -69,7 +74,7 @@ public class MavenArtifactInfo implements ArtifactInfo {
             throw new IllegalArgumentException("Key cannot be null");
         }
         String k = key.toString();
-        FieldDefinition fieldDefinition = getFieldDefinition(k);
+        FieldDefinition fieldDefinition = getFieldProvider(k);
         if (fieldDefinition == null) {
             return null;
         }
@@ -78,7 +83,7 @@ public class MavenArtifactInfo implements ArtifactInfo {
 
     @Override
     public String[] getSerializableFields() {
-        return new String[] {
+        return new String[]{
                 ModuleFields.org.id(),
                 ModuleFields.module.id(),
                 ModuleRevisionFields.revision.id(),
@@ -88,6 +93,32 @@ public class MavenArtifactInfo implements ArtifactInfo {
                 ArtifactFields.classifier.id(),
                 ArtifactFields.ext.id()
         };
+    }
+
+    @Override
+    public void populate() {
+        if (populated) {
+            throw new IllegalStateException("Cannot populate an Artifact twice! Use copy from map!");
+        }
+        populated = true;
+        for (FieldValueProvider provider : mavenValueProviders.values()) {
+            if (fields.get(provider.id()) == null) {
+                provider.populate(fields);
+            }
+        }
+    }
+
+    @Override
+    public boolean isValid() {
+        if (!populated) {
+            populate();
+        }
+        for (FieldValueProvider provider : mavenValueProviders.values()) {
+            if (!provider.isValid(fields)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -152,7 +183,18 @@ public class MavenArtifactInfo implements ArtifactInfo {
 
     @Override
     public boolean containsKey(Object key) {
-        return artifactFieldDefinitions.containsKey(key) || customFieldsDefinitions.containsKey(key);
+        if (key == null) {
+            throw new IllegalArgumentException("Key cannot be null");
+        }
+        String k = key.toString();
+        if (customFieldsDefinitions.containsKey(k)) {
+            return true;
+        }
+        if (!artifactFieldDefinitions.containsKey(k)) {
+            return false;
+        }
+        FieldDefinition fieldDefinition = getFieldProvider(k);
+        return StringUtils.isNotBlank(get(fieldDefinition.id()));
     }
 
     @Override

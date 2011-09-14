@@ -1,4 +1,10 @@
-package org.jfrog.wharf.layout.field;
+package org.jfrog.wharf.layout.field.definition;
+
+import org.jfrog.wharf.layout.field.FieldDefinition;
+import org.jfrog.wharf.layout.field.FieldValueProvider;
+import org.jfrog.wharf.layout.field.OrgFieldProvider;
+import org.jfrog.wharf.layout.field.OrgPathFieldProvider;
+import org.jfrog.wharf.layout.field.definition.DefaultFieldDefinition;
 
 /**
  * Module level fields:<ol>
@@ -12,19 +18,15 @@ package org.jfrog.wharf.layout.field;
  * @author Fred Simon
  */
 public enum ModuleFields implements FieldDefinition {
-    originalMapperName(),
-    org(new OrgFieldProvider(), "organisation", "organization", "group", "groupId"),
-    orgPath(new OrgPathFieldProvider(), "groupPath"),
+    org("organisation", "organization", "group", "groupId"),
+    orgPath("groupPath"),
     module("moduleName", "artifactId");
 
     final FieldDefinition delegate;
 
-    ModuleFields(FieldValueProvider converter, String... altNames) {
-        delegate = new DefaultFieldDefinition(name(), converter, altNames);
-    }
-
     ModuleFields(String... altNames) {
-        this(null, altNames);
+        // All fields here are mandatory
+        delegate = new DefaultFieldDefinition(true, name(), altNames);
     }
 
     @Override
@@ -38,12 +40,7 @@ public enum ModuleFields implements FieldDefinition {
     }
 
     @Override
-    public FieldValueProvider provider() {
-        return delegate.provider();
-    }
-
-    @Override
-    public String defaultRegex() {
-        return ".*";
+    public boolean isMandatory() {
+        return delegate.isMandatory();
     }
 }

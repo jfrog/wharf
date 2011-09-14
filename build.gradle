@@ -120,7 +120,10 @@ project('wharf-repository') {
 }
 
 project('wharf-resolver') {
+    apply plugin: 'groovy'
+
     description = 'Integration of Ivy DependencyResolver with Wharf'
+
     dependencies {
         compile project(':wharf-repository')
         compile group: 'org.apache.ant', name: 'ant', version: '1.8.1'
@@ -129,7 +132,9 @@ project('wharf-resolver') {
         compile group: 'com.esotericsoftware', name: 'reflectasm', version: '1.0'
         compile group: 'asm', name: 'asm', version: '3.2'
         compile group: 'org.apache.ivy', name: 'ivy', version: '2.2.0'
+        groovy 'org.codehaus.groovy:groovy-all:1.7.10@jar'
         testCompile group: 'junit', name: 'junit', version: '4.8.1'
+        testCompile group: 'org.spockframework', name: 'spock-core', version: '0.5-groovy-1.7'
     }
 }
 

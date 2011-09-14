@@ -3,16 +3,13 @@ package org.jfrog.wharf.layout.base;
 import org.apache.commons.lang.StringUtils;
 import org.jfrog.wharf.layout.ArtifactInfo;
 import org.jfrog.wharf.layout.ArtifactPathMapper;
-import org.jfrog.wharf.layout.field.ArtifactFields;
-import org.jfrog.wharf.layout.field.ModuleFields;
-import org.jfrog.wharf.layout.field.ModuleRevisionFields;
 import org.jfrog.wharf.layout.regex.NamedMatcher;
 import org.jfrog.wharf.layout.regex.NamedPattern;
-import org.jfrog.wharf.layout.regex.RepoLayoutPatterns;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+
+import static org.jfrog.wharf.layout.regex.RepoLayoutPatterns.MAVEN_2_PATTERN;
+import static org.jfrog.wharf.layout.regex.RepoLayoutPatterns.generateNamedRegexFromLayoutPattern;
 
 /**
  * Date: 9/11/11
@@ -21,17 +18,6 @@ import java.util.Set;
  * @author Fred Simon
  */
 public class MavenArtifactPathMapper implements ArtifactPathMapper {
-
-    private final static Set<String> MANDATORY_FIELDS = new HashSet<String>();
-
-    static {
-        MANDATORY_FIELDS.add(ModuleFields.org.id());
-        MANDATORY_FIELDS.add(ModuleFields.module.id());
-        MANDATORY_FIELDS.add(ModuleRevisionFields.baseRev.id());
-        MANDATORY_FIELDS.add(ModuleRevisionFields.status.id());
-        MANDATORY_FIELDS.add(ModuleRevisionFields.revision.id());
-        MANDATORY_FIELDS.add(ArtifactFields.ext.id());
-    }
 
     private final NamedPattern pathRegexPattern;
     private final String rootPath;
@@ -42,7 +28,7 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
 
     public MavenArtifactPathMapper(String rootPath) {
         this.rootPath = rootPath;
-        String regex = RepoLayoutPatterns.generateNamedRegexFromLayoutPattern(RepoLayoutPatterns.MAVEN_2_PATTERN, true);
+        String regex = generateNamedRegexFromLayoutPattern(MAVEN_2_PATTERN, true);
         this.pathRegexPattern = NamedPattern.compile(regex);
     }
 
@@ -50,32 +36,20 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
     public ArtifactInfo fromMap(Map<String, String> map) {
         MavenArtifactInfo result = new MavenArtifactInfo();
         result.putAll(map);
+        result.populate();
         return result;
     }
 
     @Override
-    public boolean isValid(ArtifactInfo artifact) {
-        for (String mandatoryField : MANDATORY_FIELDS) {
-            if (!artifact.containsKey(mandatoryField)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
     public String toPath(ArtifactInfo artifact) {
-        for (String mandatoryField : MANDATORY_FIELDS) {
-            if (!artifact.containsKey(mandatoryField)) {
-                throw new IllegalArgumentException("Artifact " + artifact + " is not a valid Maven artifact!\n" +
-                        "It does not contains the field " + mandatoryField);
-            }
+        if (!artifact.isValid()) {
+            throw new IllegalArgumentException("Artifact " + artifact + " is not a valid artifact!");
         }
-        return ( StringUtils.isNotBlank(rootPath) ? rootPath + "/" : "" ) + artifact.getGroupPath() +
+        return (StringUtils.isNotBlank(rootPath) ? rootPath + "/" : "") + artifact.getGroupPath() +
                 "/" + artifact.getModuleName() +
-                "/" + artifact.getBaseRevision() + ("integration".equals(artifact.getStatus()) ? "-SNAPSHOT" : "" ) +
+                "/" + artifact.getBaseRevision() + ("integration".equals(artifact.getStatus()) ? "-SNAPSHOT" : "") +
                 "/" + artifact.getModuleName() + "-" + artifact.getRevision() +
-                ( StringUtils.isNotBlank(artifact.getClassifier()) ? "-" + artifact.getClassifier() : "" ) +
+                (StringUtils.isNotBlank(artifact.getClassifier()) ? "-" + artifact.getClassifier() : "") +
                 "." + artifact.getExtension();
     }
 
@@ -94,5 +68,4 @@ public class MavenArtifactPathMapper implements ArtifactPathMapper {
         }
         return new MavenArtifactInfo();
     }
-
 }

@@ -1,14 +1,6 @@
 package org.jfrog.wharf.layout.field;
 
-import org.apache.commons.lang.StringUtils;
-import org.jfrog.wharf.layout.base.LayoutUtils;
-
-import java.util.Map;
-
-import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.jfrog.wharf.layout.base.LayoutUtils.STATUS_INTEGRATION;
-import static org.jfrog.wharf.layout.base.LayoutUtils.STATUS_RELEASE;
-import static org.jfrog.wharf.layout.field.ModuleRevisionFields.*;
+import static org.jfrog.wharf.layout.field.definition.ModuleRevisionFields.*;
 
 /**
  * Date: 9/11/11
@@ -16,17 +8,9 @@ import static org.jfrog.wharf.layout.field.ModuleRevisionFields.*;
  *
  * @author Fred Simon
  */
-public class StatusFieldProvider extends AbstractRevisionFieldProvider {
+public class StatusFieldProvider extends AnyRevisionFieldProvider {
 
     public StatusFieldProvider() {
         super(status);
-    }
-
-    @Override
-    public String extractFromOthers(Map<String, String> from) {
-        if (isIntegrationVersion(from)) {
-            return STATUS_INTEGRATION;
-        }
-        return STATUS_RELEASE;
     }
 }

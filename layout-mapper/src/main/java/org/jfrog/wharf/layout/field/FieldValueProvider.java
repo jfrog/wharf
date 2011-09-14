@@ -8,10 +8,23 @@ import java.util.Map;
 *
 * @author Fred Simon
 */
-public interface FieldValueProvider {
-    boolean validate(Map<String, String> from);
+public interface FieldValueProvider extends FieldDefinition {
+    /**
+     * Called after populating all fields of an ArtifactInfo object.
+     * Called only if the field value for this id is null.
+     *
+     * @param from the map of fields to populate
+     */
+    void populate(Map<String, String> from);
 
-    String extractFromOthers(Map<String, String> from);
+    /**
+     * Verify that the field value is valid.
+     * This method should not modify the map.
+     *
+     * @param from the map of fields of the artifact
+     * @return true if the field value (and surrounding field values) are valid and coherent, false otherwise.
+     */
+    boolean isValid(Map<String, String> from);
 
-    String convert(String value);
+    String defaultRegex();
 }

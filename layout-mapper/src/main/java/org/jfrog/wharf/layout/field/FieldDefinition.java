@@ -11,7 +11,5 @@ public interface FieldDefinition {
 
     String[] fieldNames();
 
-    FieldValueProvider provider();
-
-    String defaultRegex();
+    boolean isMandatory();
 }

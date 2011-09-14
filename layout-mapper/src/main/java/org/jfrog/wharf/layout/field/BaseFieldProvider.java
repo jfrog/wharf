@@ -1,34 +1,50 @@
 package org.jfrog.wharf.layout.field;
 
-import org.jfrog.wharf.layout.base.LayoutUtils;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Map;
 
 /**
-* Date: 9/11/11
-* Time: 6:37 PM
-*
-* @author Fred Simon
-*/
+ * Date: 9/11/11
+ * Time: 6:37 PM
+ *
+ * @author Fred Simon
+ */
 public class BaseFieldProvider implements FieldValueProvider {
-    final FieldDefinition fieldDefinition;
+    private final FieldDefinition fieldDefinition;
 
     public BaseFieldProvider(FieldDefinition fieldDefinition) {
         this.fieldDefinition = fieldDefinition;
     }
 
     @Override
-    public boolean validate(Map<String, String> from) {
-        return true;
+    public final String id() {
+        return fieldDefinition.id();
     }
 
     @Override
-    public String extractFromOthers(Map<String, String> from) {
-        return null;
+    public String[] fieldNames() {
+        return fieldDefinition.fieldNames();
     }
 
     @Override
-    public String convert(String value) {
-        return LayoutUtils.convertToValidField(value);
+    public boolean isMandatory() {
+        return fieldDefinition.isMandatory();
+    }
+
+    @Override
+    public boolean isValid(Map<String, String> from) {
+        return !isMandatory() || StringUtils.isNotBlank(from.get(id()));
+    }
+
+    @Override
+    public void populate(Map<String, String> from) {
+        // Nothing by default
+    }
+
+    @Override
+    public String defaultRegex() {
+        // By default anything but /
+        return "[^/]+";
     }
 }

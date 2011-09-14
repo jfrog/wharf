@@ -1,12 +1,6 @@
 package org.jfrog.wharf.layout.field;
 
-import org.apache.commons.lang.StringUtils;
-
-import java.util.Map;
-
-import static org.jfrog.wharf.layout.field.ArtifactFields.type;
-import static org.jfrog.wharf.layout.field.ModuleFields.module;
-import static org.jfrog.wharf.layout.field.ModuleRevisionFields.*;
+import static org.jfrog.wharf.layout.field.definition.ModuleRevisionFields.*;
 
 /**
  * Date: 9/11/11
@@ -14,24 +8,9 @@ import static org.jfrog.wharf.layout.field.ModuleRevisionFields.*;
  *
  * @author Fred Simon
  */
-public class RevisionFieldProvider extends BaseFieldProvider {
+public class RevisionFieldProvider extends AnyRevisionFieldProvider {
 
     public RevisionFieldProvider() {
         super(revision);
-    }
-
-    @Override
-    public String extractFromOthers(Map<String, String> from) {
-        String baseRevision = from.get(baseRev.id());
-        if (StringUtils.isNotBlank(baseRevision)) {
-            String fileIntegrationVersion = from.get(fileItegRev.id());
-            if (StringUtils.isNotBlank(fileIntegrationVersion)) {
-                return baseRevision + "-" + fileIntegrationVersion;
-            }
-            if ("integration".equals(from.get(status.id()))) {
-                return baseRevision + "-SNAPSHOT";
-            }
-        }
-        return null;
     }
 }

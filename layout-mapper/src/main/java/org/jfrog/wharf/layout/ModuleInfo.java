@@ -9,7 +9,12 @@ import java.util.Map;
  * @author Fred Simon
  */
 public interface ModuleInfo extends Map<String, String> {
+
     String[] getSerializableFields();
+
+    void populate();
+
+    boolean isValid();
 
     String getGroup();
 

@@ -11,8 +11,6 @@ import java.util.Map;
 public interface ArtifactPathMapper {
     ArtifactInfo fromMap(Map<String, String> map);
 
-    boolean isValid(ArtifactInfo artifact);
-
     String toPath(ArtifactInfo artifact);
 
     ArtifactInfo fromPath(String path);
