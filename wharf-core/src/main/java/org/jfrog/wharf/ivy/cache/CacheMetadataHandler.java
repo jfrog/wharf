@@ -23,10 +23,10 @@ import org.apache.ivy.core.IvyPatternHelper;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
-import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.lock.LockStrategy;
 import org.apache.ivy.plugins.lock.NoLockStrategy;
+import org.jfrog.wharf.ivy.lock.WharfLockFactory;
 import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
 import org.jfrog.wharf.ivy.marshall.api.MrmMarshaller;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
@@ -40,20 +40,14 @@ import java.util.Date;
  */
 public class CacheMetadataHandler {
 
-    private static final ArtifactLockStrategy LOCK_STRATEGY = new ArtifactLockStrategy();
-
-    private final MrmMarshaller mrmMarshaller = MarshallerFactory.createMetadataMarshaller();
-
+    private final MrmMarshaller mrmMarshaller;
     private final File baseDir;
-    private final IvySettings settings;
-
     private LockStrategy lockStrategy;
-    private String lockStrategyName;
 
-    public CacheMetadataHandler(File baseDir, IvySettings settings) {
+    public CacheMetadataHandler(File baseDir, WharfLockFactory lockFactory) {
         this.baseDir = baseDir;
-        this.settings = settings;
-        setLockStrategy(LOCK_STRATEGY);
+        this.mrmMarshaller = MarshallerFactory.createMetadataMarshaller(lockFactory);
+        this.lockStrategy = lockFactory.getArtifactLockStrategy();
     }
 
     public void saveModuleRevisionMetadata(ModuleRevisionId mrid, ModuleRevisionMetadata mrm) {
@@ -86,22 +80,11 @@ public class CacheMetadataHandler {
     }
 
     public LockStrategy getLockStrategy() {
-        if (lockStrategy == null) {
-            if (lockStrategyName != null) {
-                lockStrategy = settings.getLockStrategy(lockStrategyName);
-            } else {
-                lockStrategy = settings.getDefaultLockStrategy();
-            }
-        }
         return lockStrategy;
     }
 
     public void setLockStrategy(LockStrategy lockStrategy) {
         this.lockStrategy = lockStrategy;
-    }
-
-    public void setLockStrategy(String lockStrategyName) {
-        this.lockStrategyName = lockStrategyName;
     }
 
     // lock used to lock all metadata related information access
@@ -112,9 +95,6 @@ public class CacheMetadataHandler {
             // if the cache pattern is using original name, and the substitution thus trying to get
             // the saved artifact origin value which in turns calls this method
             File wharfDataFile = getWharfDataFile(mrid);
-            if (!wharfDataFile.getParentFile().exists()) {
-                wharfDataFile.getParentFile().mkdirs();
-            }
             return getLockStrategy().lockArtifact(artifact, wharfDataFile);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // reset interrupt status

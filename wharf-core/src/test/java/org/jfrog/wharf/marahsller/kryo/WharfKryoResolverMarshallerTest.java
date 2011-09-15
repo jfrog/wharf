@@ -19,6 +19,7 @@
 package org.jfrog.wharf.marahsller.kryo;
 
 import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
+import org.jfrog.wharf.ivy.lock.WharfLockFactory;
 import org.jfrog.wharf.ivy.marshall.kryo.WharfKryoResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 import org.junit.After;
@@ -36,7 +37,7 @@ import java.util.Set;
  */
 public class WharfKryoResolverMarshallerTest {
 
-    WharfKryoResolverMarshaller wharfKryoResolverMarshaller = new WharfKryoResolverMarshaller();
+    WharfKryoResolverMarshaller wharfKryoResolverMarshaller = new WharfKryoResolverMarshaller(new WharfLockFactory());
     private File cacheDir;
 
     @Before

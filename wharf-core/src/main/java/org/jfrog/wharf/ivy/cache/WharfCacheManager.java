@@ -50,6 +50,7 @@ import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
+import org.jfrog.wharf.ivy.lock.WharfLockFactory;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -107,6 +108,8 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
 
     private Random generator = new Random(System.currentTimeMillis());
 
+    private WharfLockFactory lockFactory;
+
     public static WharfCacheManager newInstance(IvySettings ivySettings) {
         return newInstance(ivySettings, null, null);
     }
@@ -127,6 +130,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
     }
 
     public WharfCacheManager() {
+        lockFactory = new WharfLockFactory();
     }
 
     public IvySettings getSettings() {
@@ -135,6 +139,7 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
 
     public void setSettings(IvySettings settings) {
         this.settings = settings;
+        lockFactory.setSettings(settings);
         settingsChanged();
     }
 
@@ -165,16 +170,20 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
         resolverHandler = null;
     }
 
+    public WharfLockFactory getLockFactory() {
+        return lockFactory;
+    }
+
     public CacheMetadataHandler getMetadataHandler() {
         if (metadataHandler == null) {
-            metadataHandler = new CacheMetadataHandler(getBasedir(), settings);
+            metadataHandler = new CacheMetadataHandler(getBasedir(), lockFactory);
         }
         return metadataHandler;
     }
 
     public ResolverHandler getResolverHandler() {
         if (resolverHandler == null) {
-            resolverHandler = new ResolverHandler(getBasedir(), settings);
+            resolverHandler = new ResolverHandler(getBasedir(), settings, lockFactory);
         }
         return resolverHandler;
     }
@@ -828,12 +837,12 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
     private void fillChecksums(ArtifactMetadata artMd, File archiveFile) {
         if (archiveFile != null) {
             try {
-            if (WharfUtils.isEmptyString(artMd.md5)) {
+                if (WharfUtils.isEmptyString(artMd.md5)) {
                     artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
-            }
-            if (WharfUtils.isEmptyString(artMd.sha1)) {
-                artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
-            }
+                }
+                if (WharfUtils.isEmptyString(artMd.sha1)) {
+                    artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
+                }
             } catch (IOException e) {
                 Message.error("Could not calculate checksums of file " + archiveFile.getAbsolutePath() +
                         " due to:" + e.getMessage());

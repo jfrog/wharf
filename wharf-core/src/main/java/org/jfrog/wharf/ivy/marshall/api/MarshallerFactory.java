@@ -19,6 +19,7 @@
 package org.jfrog.wharf.ivy.marshall.api;
 
 
+import org.jfrog.wharf.ivy.lock.WharfLockFactory;
 import org.jfrog.wharf.ivy.marshall.jackson.JacksonMarshallerProvider;
 import org.jfrog.wharf.ivy.marshall.kryo.KryoMarshallerProvider;
 
@@ -40,10 +41,10 @@ public abstract class MarshallerFactory {
         return System.getProperty(WHARF_MARSHALL_TYPE, "kryo");
     }
 
-    public static MarshallerProvider getMarshallerProvider() {
+    public static MarshallerProvider getMarshallerProvider(WharfLockFactory lockFactory) {
         String marshallerType = getMarshallerType();
         if ("kryo".equals(marshallerType)) {
-            return new KryoMarshallerProvider();
+            return new KryoMarshallerProvider(lockFactory);
         } else if ("jackson".equals(marshallerType)) {
             return new JacksonMarshallerProvider();
         } else {
@@ -56,11 +57,11 @@ public abstract class MarshallerFactory {
         }
     }
 
-    public static MrmMarshaller createMetadataMarshaller() {
-        return getMarshallerProvider().getMetadataMarshaller();
+    public static MrmMarshaller createMetadataMarshaller(WharfLockFactory lockFactory) {
+        return getMarshallerProvider(lockFactory).getMetadataMarshaller();
     }
 
-    public static WharfResolverMarshaller createWharfResolverMarshaller() {
-        return getMarshallerProvider().getWharfResolverMarshaller();
+    public static WharfResolverMarshaller createWharfResolverMarshaller(WharfLockFactory lockFactory) {
+        return getMarshallerProvider(lockFactory).getWharfResolverMarshaller();
     }
 }

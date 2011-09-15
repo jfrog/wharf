@@ -149,6 +149,16 @@ public class WharfUtils {
         return wharfResolver.basicFindModuleInCache(dd, data, false);
     }
 
+    public static void closeQuietly(Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                Message.verbose("Closing " + closeable + " throw an exception: " + e.getMessage());
+            }
+        }
+    }
+
     private enum OperatingSystem {
         OLD_WINDOWS {
             @Override
