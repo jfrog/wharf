@@ -1,4 +1,4 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.file;
 
 
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
@@ -6,6 +6,7 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
+import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
 import org.jfrog.wharf.ivy.resolver.FileSystemWharfResolver;
 import org.junit.Test;
 

@@ -1,6 +1,7 @@
 package org.jfrog.wharf.ivy.lock;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Date: 9/15/11
@@ -9,21 +10,25 @@ import java.io.File;
  * @author Fred Simon
  */
 public abstract class BaseFileLockHolder implements InternalLockHolder {
-    protected final WharfLockFactory factory;
+    protected final LockHolderFactory factory;
     protected final File protectedFile;
     protected final File lockFile;
 
     protected String lastMessage;
 
-    protected BaseFileLockHolder(WharfLockFactory factory, File protectedFile) {
+    protected BaseFileLockHolder(LockHolderFactory factory, File protectedFile) {
         this.protectedFile = protectedFile;
         this.factory = factory;
-        this.lockFile = new File(protectedFile + WharfLockFactory.LOCK_FILE_SUFFIX);
+        this.lockFile = new File(protectedFile + factory.getLockFileSuffix());
+    }
+
+    protected void verifyParentDir() throws IOException {
         File dir = lockFile.getParentFile();
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
-                throw new RuntimeException("Could not create directory " + dir.getAbsolutePath() +
+                setLastMessage("Could not create directory " + dir.getAbsolutePath() +
                         " for file " + protectedFile.getAbsolutePath());
+                throw new IOException(stateMessage());
             }
         }
     }
@@ -39,7 +44,7 @@ public abstract class BaseFileLockHolder implements InternalLockHolder {
     }
 
     @Override
-    public WharfLockFactory getFactory() {
+    public LockHolderFactory getFactory() {
         return factory;
     }
 

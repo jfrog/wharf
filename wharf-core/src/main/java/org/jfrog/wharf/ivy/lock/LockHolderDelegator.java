@@ -31,7 +31,7 @@ public abstract class LockHolderDelegator implements InternalLockHolder {
     }
 
     @Override
-    public WharfLockFactory getFactory() {
+    public LockHolderFactory getFactory() {
         return delegate.getFactory();
     }
 

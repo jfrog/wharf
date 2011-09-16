@@ -1,6 +1,7 @@
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.file;
 
 import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
 import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver;
 import org.junit.Test;
 

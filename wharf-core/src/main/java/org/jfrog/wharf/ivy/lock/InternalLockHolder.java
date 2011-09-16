@@ -9,7 +9,7 @@ import java.io.Closeable;
  * @author Fred Simon
  */
 public interface InternalLockHolder extends LockHolder, Closeable {
-    WharfLockFactory getFactory();
+    LockHolderFactory getFactory();
 
     LockLogger getLogger();
 

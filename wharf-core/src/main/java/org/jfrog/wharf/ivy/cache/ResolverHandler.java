@@ -21,7 +21,7 @@ package org.jfrog.wharf.ivy.cache;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.Message;
-import org.jfrog.wharf.ivy.lock.WharfLockFactory;
+import org.jfrog.wharf.ivy.lock.LockHolderFactory;
 import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
 import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -44,7 +44,7 @@ public class ResolverHandler {
     private final Map<Integer, WharfResolverMetadata> resolverFromDependencyResolverHash;
     private final WharfResolverMarshaller wharfResolverMarshaller;
 
-    public ResolverHandler(File baseDir, IvySettings settings, WharfLockFactory lockFactory) {
+    public ResolverHandler(File baseDir, IvySettings settings, LockHolderFactory lockFactory) {
         this.baseDir = baseDir;
         this.settings = settings;
         this.resolvers = new HashMap<String, WharfResolverMetadata>();

@@ -13,7 +13,7 @@ public class SimpleFileLockHolder extends BaseFileLockHolder {
 
     private boolean lockAcquired = false;
 
-    public SimpleFileLockHolder(WharfLockFactory factory, File protectedFile) {
+    public SimpleFileLockHolder(LockHolderFactory factory, File protectedFile) {
         super(factory, protectedFile);
     }
 
@@ -33,6 +33,7 @@ public class SimpleFileLockHolder extends BaseFileLockHolder {
     @Override
     public boolean acquireLock() {
         try {
+            verifyParentDir();
             lockAcquired = lockFile.createNewFile();
             if (lockAcquired) {
                 lockFile.deleteOnExit();

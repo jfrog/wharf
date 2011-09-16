@@ -16,7 +16,7 @@
  * /
  */
 
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.file;
 
 
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
@@ -26,6 +26,8 @@ import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
 import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
+import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
+import org.jfrog.wharf.ivy.IvySettingsTestHolder;
 import org.junit.Before;
 import org.junit.Test;
 

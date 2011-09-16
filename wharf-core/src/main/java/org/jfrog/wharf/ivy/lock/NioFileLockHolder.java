@@ -7,19 +7,20 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 
 import static org.jfrog.wharf.ivy.util.WharfUtils.closeQuietly;
 
 /**
  * Locks a file using the {@link java.nio.channels.FileLock} mechanism.
  */
-public class NIOFileLockHolder extends BaseFileLockHolder {
+public class NioFileLockHolder extends BaseFileLockHolder {
 
     private FileLock lock;
     private RandomAccessFile raf;
     private FileChannel channel;
 
-    public NIOFileLockHolder(WharfLockFactory factory, File protectedFile) {
+    public NioFileLockHolder(LockHolderFactory factory, File protectedFile) {
         super(factory, protectedFile);
     }
 
@@ -27,6 +28,7 @@ public class NIOFileLockHolder extends BaseFileLockHolder {
         if (channel != null && channel.isOpen()) {
             return;
         }
+        verifyParentDir();
         if (lockFile.createNewFile()) {
             lockFile.deleteOnExit();
         }
@@ -38,12 +40,20 @@ public class NIOFileLockHolder extends BaseFileLockHolder {
         closeQuietly(raf);
         raf = null;
         channel = null;
+        lock = null;
     }
 
     @Override
-    public boolean acquireLock() {
+    public synchronized boolean acquireLock() {
         try {
             initChannel();
+            if (lock != null) {
+                setLastMessage("NIO lock already taken");
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().log(stateMessage());
+                }
+                return false;
+            }
             lock = channel.tryLock();
             if (lock != null) {
                 return true;
@@ -53,8 +63,11 @@ public class NIOFileLockHolder extends BaseFileLockHolder {
                     getLogger().log(stateMessage());
                 }
             }
+        } catch (OverlappingFileLockException e) {
+            setLastMessage("Trying to acquire a file lock already acquired in the same JVM: " + e.getMessage());
+            Message.verbose(stateMessage());
+            close();
         } catch (IOException e) {
-            // ignored
             setLastMessage("File lock failed due to an exception: " + e.getMessage());
             Message.verbose(stateMessage());
             close();
@@ -63,7 +76,7 @@ public class NIOFileLockHolder extends BaseFileLockHolder {
     }
 
     @Override
-    public void releaseLock() {
+    public synchronized void releaseLock() {
         if (lock == null) {
             setLastMessage(" file not previously locked: " + lockFile);
             return;

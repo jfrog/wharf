@@ -21,7 +21,7 @@ package org.jfrog.wharf.ivy.marshall.kryo;
 
 import com.esotericsoftware.kryo.ObjectBuffer;
 import org.jfrog.wharf.ivy.lock.LockHolder;
-import org.jfrog.wharf.ivy.lock.WharfLockFactory;
+import org.jfrog.wharf.ivy.lock.LockHolderFactory;
 import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 import org.jfrog.wharf.ivy.util.WharfUtils;
@@ -36,9 +36,9 @@ import java.util.Set;
 public class WharfKryoResolverMarshaller implements WharfResolverMarshaller {
     private static final String RESOLVERS_FILE_PATH = ".wharf/resolvers.kryo";
 
-    private final WharfLockFactory lockFactory;
+    private final LockHolderFactory lockFactory;
 
-    public WharfKryoResolverMarshaller(WharfLockFactory lockFactory) {
+    public WharfKryoResolverMarshaller(LockHolderFactory lockFactory) {
         this.lockFactory = lockFactory;
     }
 

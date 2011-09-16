@@ -15,7 +15,7 @@
  *  limitations under the License.
  * /
  */
-package org.jfrog.wharf.ivy;
+package org.jfrog.wharf.ivy.file;
 
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
@@ -29,6 +29,7 @@ import org.apache.ivy.plugins.latest.LatestRevisionStrategy;
 import org.apache.ivy.plugins.latest.LatestTimeStrategy;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.FileUtil;
+import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 import org.jfrog.wharf.ivy.resolver.FileSystemWharfResolver;
