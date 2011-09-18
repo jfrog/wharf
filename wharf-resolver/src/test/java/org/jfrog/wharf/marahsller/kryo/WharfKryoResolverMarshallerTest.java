@@ -19,6 +19,8 @@
 package org.jfrog.wharf.marahsller.kryo;
 
 import org.jfrog.wharf.ivy.AbstractDependencyResolverTest;
+import org.jfrog.wharf.ivy.lock.LockHolderFactory;
+import org.jfrog.wharf.ivy.lock.NioFileLockFactory;
 import org.jfrog.wharf.ivy.marshall.kryo.WharfKryoResolverMarshaller;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
 import org.junit.After;
@@ -27,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -36,7 +39,8 @@ import java.util.Set;
  */
 public class WharfKryoResolverMarshallerTest {
 
-    WharfKryoResolverMarshaller wharfKryoResolverMarshaller = new WharfKryoResolverMarshaller();
+    LockHolderFactory lockFactory = new NioFileLockFactory();
+    WharfKryoResolverMarshaller wharfKryoResolverMarshaller = new WharfKryoResolverMarshaller(lockFactory);
     private File cacheDir;
 
     @Before
@@ -45,7 +49,8 @@ public class WharfKryoResolverMarshallerTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
+        lockFactory.close();
         AbstractDependencyResolverTest.deleteCacheFolder(cacheDir);
     }
 

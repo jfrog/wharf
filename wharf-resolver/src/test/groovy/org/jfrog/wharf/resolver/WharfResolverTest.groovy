@@ -17,12 +17,13 @@ package org.jfrog.wharf.resolver
 
 import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver
 import spock.lang.Specification
+import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver.CacheTimeoutStrategy
 
 /**
  * @author Hans Dockter
  */
 class WharfResolverTest extends Specification {
-    WharfResolverConfiguration wharfResolver = new WharfResolverConfiguration()
+    IBiblioWharfResolver wharfResolver = new IBiblioWharfResolver()
 
     def testInit() {
         expect:

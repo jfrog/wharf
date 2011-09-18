@@ -1,64 +1,38 @@
-/*
- *
- *  Copyright (C) 2010 JFrog Ltd.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- * /
- */
 package org.jfrog.wharf.ivy;
 
-import org.apache.ivy.core.cache.RepositoryCacheManager;
-import org.apache.ivy.core.event.EventManager;
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
-import org.apache.ivy.core.resolve.ResolveData;
-import org.apache.ivy.core.resolve.ResolveEngine;
-import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.core.sort.SortEngine;
-import org.apache.ivy.plugins.lock.ArtifactLockStrategy;
 import org.apache.ivy.plugins.repository.RepositoryCopyProgressListener;
 import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.apache.ivy.util.CopyProgressEvent;
-import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
-import org.jfrog.wharf.ivy.cache.WharfCacheManager;
 import org.jfrog.wharf.ivy.repository.WharfURLRepository;
 import org.jfrog.wharf.ivy.resolver.FileSystemWharfResolver;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
-import java.io.File;
 import java.text.ParseException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class WharfCacheManagerArtifactLockTest extends AbstractDependencyResolverTest {
-
-    @Test
-    public void testConcurrentResolve() throws Exception {
+/**
+ * Date: 9/15/11
+ * Time: 6:09 PM
+ *
+ * @author Fred Simon
+ */
+public class BaseLockResolverTest extends AbstractDependencyResolverTest {
+    protected void runResolvers() throws InterruptedException {
         // we use different settings because Ivy do not support multi thread resolve with the same
         // settings yet and this is not what this test is about: the focus of this test is running
         // concurrent resolves in separate vms but using the same cache. We don't span the test on
         // multiple vms, but using separate settings we should only run into shared cache related
         // issues, and not multi thread related issues.
-        IvySettingsTestHolder settings1 = createNewLockedSettings();
-        IvySettingsTestHolder settings2 = createNewLockedSettings();
-        IvySettingsTestHolder settings3 = createNewLockedSettings();
-        IvySettingsTestHolder settings4 = createNewLockedSettings();
+        IvySettingsTestHolder settings1 = createNewSettings();
+        IvySettingsTestHolder settings2 = createNewSettings();
+        IvySettingsTestHolder settings3 = createNewSettings();
+        IvySettingsTestHolder settings4 = createNewSettings();
 
         // run 3 concurrent resolves, one taking 100ms to download files, one 20ms and one 5ms
         // the first one do 10 resolves, the second one 20 and the third 50
@@ -83,12 +57,6 @@ public class WharfCacheManagerArtifactLockTest extends AbstractDependencyResolve
         assertFound("org6#mod6.4;3", t3.getFinalResult());
         assertEquals(50, t4.getCount());
         assertFound("org6#mod6.2;2.0", t4.getFinalResult());
-    }
-
-    private IvySettingsTestHolder createNewLockedSettings() {
-        IvySettingsTestHolder settingsTestHolder = createNewSettings();
-        settingsTestHolder.cacheManager.getMetadataHandler().setLockStrategy(new ArtifactLockStrategy());
-        return settingsTestHolder;
     }
 
     private FileSystemResolver createSlowResolver(IvySettings settings, final int sleep) {
@@ -118,13 +86,11 @@ public class WharfCacheManagerArtifactLockTest extends AbstractDependencyResolve
         return resolver;
     }
 
-
     private ResolveThread asyncResolve(IvySettingsTestHolder settings, FileSystemResolver resolver, String module, int loop) {
         ResolveThread thread = new ResolveThread(settings, resolver, module, loop);
         thread.start();
         return thread;
     }
-
 
     private void assertFound(String module, ResolvedModuleRevision rmr) {
         assertNotNull(rmr);
@@ -193,5 +159,4 @@ public class WharfCacheManagerArtifactLockTest extends AbstractDependencyResolve
             finalResult = rmr;
         }
     }
-
 }

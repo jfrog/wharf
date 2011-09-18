@@ -17,8 +17,6 @@
  */
 package org.jfrog.wharf.ivy;
 
-import org.apache.ivy.core.cache.ArtifactOrigin;
-import org.apache.ivy.core.event.EventManager;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
@@ -26,12 +24,10 @@ import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.DownloadReport;
 import org.apache.ivy.core.report.DownloadStatus;
 import org.apache.ivy.core.resolve.*;
-import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.core.sort.SortEngine;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.FileUtil;
 import org.apache.tools.ant.util.FileUtils;
-import org.jfrog.wharf.ivy.cache.WharfCacheManager;
+import org.jfrog.wharf.ivy.handler.WharfUrlHandler;
 import org.jfrog.wharf.ivy.resolver.FileSystemWharfResolver;
 import org.jfrog.wharf.ivy.resolver.IBiblioWharfResolver;
 import org.junit.After;
@@ -42,11 +38,11 @@ import java.io.File;
 import java.text.ParseException;
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class AbstractDependencyResolverTest {
+
+    protected static boolean useNio = true;
 
     public static final String SRC_TEST_REPOSITORIES = "src/test/repositories";
     protected static final String FS = System.getProperty("file.separator");
@@ -55,6 +51,7 @@ public class AbstractDependencyResolverTest {
     protected static final String DEFAULT_ARTIFACT_PATTERN = "[organisation]/[module]/[type]s/[artifact]-[revision].[type]";
 
     protected IvySettingsTestHolder defaultSettings;
+    List<IvySettingsTestHolder> testHolders;
 
     protected IBiblioWharfResolver createIBiblioResolver(String name, String root) {
         IBiblioWharfResolver resolver = new IBiblioWharfResolver();
@@ -68,7 +65,7 @@ public class AbstractDependencyResolverTest {
     }
 
     protected void downloadNoDescriptor(ModuleRevisionId mrid, DependencyResolver resolver, int nbDownload) throws ParseException {
-        DownloadReport dr = resolver.download(new Artifact[] {new DefaultArtifact(mrid, null, mrid.getModuleId().getName(), "jar", "jar")}, getDownloadOptions());
+        DownloadReport dr = resolver.download(new Artifact[]{new DefaultArtifact(mrid, null, mrid.getModuleId().getName(), "jar", "jar")}, getDownloadOptions());
         assertEquals(nbDownload, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
     }
 
@@ -76,7 +73,7 @@ public class AbstractDependencyResolverTest {
         HashMap attributes = new HashMap();
         attributes.put("m:classifier", "sources");
         DefaultArtifact defaultArtifact = new DefaultArtifact(mrid, null, mrid.getModuleId().getName(), "jar", "jar", attributes);
-        DownloadReport dr = resolver.download(new Artifact[] {defaultArtifact}, getDownloadOptions());
+        DownloadReport dr = resolver.download(new Artifact[]{defaultArtifact}, getDownloadOptions());
         assertEquals(nbDownload, dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length);
     }
 
@@ -86,8 +83,8 @@ public class AbstractDependencyResolverTest {
         assertNotNull(rmr);
         DownloadReport dr = resolver.download(rmr.getDescriptor().getAllArtifacts(), getDownloadOptions());
         int nbDownload = dr.getArtifactsReports(DownloadStatus.SUCCESSFUL).length;
-        assertTrue("The number of downloads "+nbDownload+" should be at least "+min, nbDownload >= min);
-        assertTrue("The number of downloads "+nbDownload+" should be at most "+max, nbDownload <= max);
+        assertTrue("The number of downloads " + nbDownload + " should be at least " + min, nbDownload >= min);
+        assertTrue("The number of downloads " + nbDownload + " should be at most " + max, nbDownload <= max);
     }
 
     protected void downloadAndCheck(ModuleRevisionId mrid, DependencyResolver resolver, int nbDownload) throws ParseException {
@@ -106,7 +103,7 @@ public class AbstractDependencyResolverTest {
         resolver.setSettings(defaultSettings.settings);
         defaultSettings.settings.addResolver(resolver);
         StringBuilder builder = new StringBuilder(repoTestRoot.getAbsolutePath());
-        if (builder.charAt(builder.length()-1) != '/') {
+        if (builder.charAt(builder.length() - 1) != '/') {
             builder.append('/');
         }
         builder.append(repoName).append('/');
@@ -120,29 +117,15 @@ public class AbstractDependencyResolverTest {
         return resolver;
     }
 
-    protected class IvySettingsTestHolder {
-        protected IvySettings settings;
-        protected ResolveEngine engine;
-        protected ResolveData data;
-        protected WharfCacheManager cacheManager;
-
-        protected void init(File baseDir) {
-            settings = new IvySettings();
-            settings.setBaseDir(baseDir);
-            settings.setDefaultCache(cacheFolder);
-            cacheManager = WharfCacheManager.newInstance(settings);
-            settings.setDefaultRepositoryCacheManager(cacheManager);
-            engine = new ResolveEngine(settings, new EventManager(), new SortEngine(settings));
-            data = new ResolveData(engine, new ResolveOptions());
-        }
-
-    }
-
     protected File cacheFolder;
     protected File repoTestRoot;
 
     @Before
     public void setUp() throws Exception {
+        // Initialize test fields
+        testHolders = new ArrayList<IvySettingsTestHolder>();
+        WharfUrlHandler.tracer = null;
+
         // Find the baseDir based on where test repositories are located
         File baseDir = new File(".").getCanonicalFile();
         repoTestRoot = new File(baseDir, SRC_TEST_REPOSITORIES);
@@ -159,13 +142,14 @@ public class AbstractDependencyResolverTest {
 
         // Configure the ivy settings
         defaultSettings = new IvySettingsTestHolder();
-        defaultSettings.init(baseDir);
+        defaultSettings.init(baseDir, cacheFolder);
         setupLastModified();
     }
 
     protected IvySettingsTestHolder createNewSettings() {
         IvySettingsTestHolder holder = new IvySettingsTestHolder();
-        holder.init(defaultSettings.settings.getBaseDir());
+        holder.init(defaultSettings.settings.getBaseDir(), cacheFolder);
+        testHolders.add(holder);
         return holder;
     }
 
@@ -229,6 +213,11 @@ public class AbstractDependencyResolverTest {
 
     @After()
     public void tearDown() throws Exception {
+        // Close all
+        for (IvySettingsTestHolder testHolder : testHolders) {
+            testHolder.cacheManager.close();
+        }
+        defaultSettings.cacheManager.close();
         deleteCacheFolder(cacheFolder);
     }
 

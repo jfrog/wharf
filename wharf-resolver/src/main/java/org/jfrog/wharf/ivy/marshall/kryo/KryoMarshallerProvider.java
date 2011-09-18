@@ -19,6 +19,7 @@
 package org.jfrog.wharf.ivy.marshall.kryo;
 
 
+import org.jfrog.wharf.ivy.lock.LockHolderFactory;
 import org.jfrog.wharf.ivy.marshall.api.MarshallerProvider;
 import org.jfrog.wharf.ivy.marshall.api.MrmMarshaller;
 import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
@@ -27,11 +28,17 @@ import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
  * @author Tomer Cohen
  */
 public class KryoMarshallerProvider implements MarshallerProvider {
+    private final LockHolderFactory lockFactory;
+
+    public KryoMarshallerProvider(LockHolderFactory lockFactory) {
+        this.lockFactory = lockFactory;
+    }
+
     public MrmMarshaller getMetadataMarshaller() {
         return new MrmKryoMarshallerImpl();
     }
 
     public WharfResolverMarshaller getWharfResolverMarshaller() {
-        return new WharfKryoResolverMarshaller();
+        return new WharfKryoResolverMarshaller(lockFactory);
     }
 }

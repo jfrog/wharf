@@ -50,6 +50,9 @@ import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.util.ChecksumHelper;
 import org.apache.ivy.util.FileUtil;
 import org.apache.ivy.util.Message;
+import org.jfrog.wharf.ivy.lock.LockHolderFactory;
+import org.jfrog.wharf.ivy.lock.NioFileLockFactory;
+import org.jfrog.wharf.ivy.lock.SimpleFileLockFactory;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -57,6 +60,7 @@ import org.jfrog.wharf.ivy.repository.WharfArtifactResourceResolver;
 import org.jfrog.wharf.ivy.resource.WharfUrlResource;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -70,7 +74,7 @@ import java.util.regex.Pattern;
 /**
  * @author Tomer Cohen
  */
-public class WharfCacheManager implements ModuleMetadataManager, RepositoryCacheManager, IvySettingsAware {
+public class WharfCacheManager implements ModuleMetadataManager, RepositoryCacheManager, IvySettingsAware, Closeable {
     private static final String DEFAULT_ARTIFACT_PATTERN =
             "[organisation]/[module](/[branch])/[resolverId]/[type]s/[artifact]-[revision](-[classifier])(.[ext])";
 
@@ -106,6 +110,8 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
     private CacheMetadataHandler metadataHandler;
 
     private Random generator = new Random(System.currentTimeMillis());
+
+    private LockHolderFactory lockFactory;
 
     public static WharfCacheManager newInstance(IvySettings ivySettings) {
         return newInstance(ivySettings, null, null);
@@ -161,20 +167,48 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
     }
 
     private void settingsChanged() {
+        if (lockFactory != null) {
+            WharfUtils.closeQuietly(lockFactory);
+        }
+        lockFactory = null;
         metadataHandler = null;
         resolverHandler = null;
     }
 
+    public LockHolderFactory getLockFactory() {
+        if (lockFactory == null) {
+            String lockHolderFactoryName = getSettings().getVariable(LockHolderFactory.class.getName());
+            if (lockHolderFactoryName != null && lockHolderFactoryName.length() > 0) {
+                if ("nio".equalsIgnoreCase(lockHolderFactoryName)) {
+                    lockFactory = new NioFileLockFactory();
+                } else if ("simple".equalsIgnoreCase(lockHolderFactoryName)) {
+                    lockFactory = new SimpleFileLockFactory();
+                } else {
+                    try {
+                        lockFactory = (LockHolderFactory) Class.forName(lockHolderFactoryName).newInstance();
+                    } catch (Exception e) {
+                        Message.error("Could not instantiate lock holder factory from name: '" + lockHolderFactoryName + "'!" +
+                                "Fall back to nio lock!");
+                    }
+                }
+            }
+            if (lockFactory == null) {
+                lockFactory = new NioFileLockFactory();
+            }
+        }
+        return lockFactory;
+    }
+
     public CacheMetadataHandler getMetadataHandler() {
         if (metadataHandler == null) {
-            metadataHandler = new CacheMetadataHandler(getBasedir(), settings);
+            metadataHandler = new CacheMetadataHandler(getBasedir(), getLockFactory());
         }
         return metadataHandler;
     }
 
     public ResolverHandler getResolverHandler() {
         if (resolverHandler == null) {
-            resolverHandler = new ResolverHandler(getBasedir(), settings);
+            resolverHandler = new ResolverHandler(getBasedir(), settings, getLockFactory());
         }
         return resolverHandler;
     }
@@ -828,12 +862,12 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
     private void fillChecksums(ArtifactMetadata artMd, File archiveFile) {
         if (archiveFile != null) {
             try {
-            if (WharfUtils.isEmptyString(artMd.md5)) {
+                if (WharfUtils.isEmptyString(artMd.md5)) {
                     artMd.md5 = ChecksumHelper.computeAsString(archiveFile, "md5");
-            }
-            if (WharfUtils.isEmptyString(artMd.sha1)) {
-                artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
-            }
+                }
+                if (WharfUtils.isEmptyString(artMd.sha1)) {
+                    artMd.sha1 = ChecksumHelper.computeAsString(archiveFile, "sha1");
+                }
             } catch (IOException e) {
                 Message.error("Could not calculate checksums of file " + archiveFile.getAbsolutePath() +
                         " due to:" + e.getMessage());
@@ -1103,11 +1137,17 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
         FileUtil.forceDelete(getBasedir());
     }
 
+    @Override
+    public void close() throws IOException {
+        if (lockFactory != null) {
+            lockFactory.close();
+        }
+    }
+
     public void dumpSettings() {
         Message.verbose("\t" + getName());
         Message.debug("\t\tivyPattern: " + DEFAULT_IVY_PATTERN);
         Message.debug("\t\tartifactPattern: " + DEFAULT_ARTIFACT_PATTERN);
-        Message.debug("\t\tlockingStrategy: " + getMetadataHandler().getLockStrategy().getName());
         Message.debug("\t\tchangingPattern: " + getChangingPattern());
         Message.debug("\t\tchangingMatcher: " + getChangingMatcherName());
     }

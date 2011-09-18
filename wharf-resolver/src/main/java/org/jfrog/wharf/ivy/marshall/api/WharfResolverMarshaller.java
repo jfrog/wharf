@@ -29,12 +29,6 @@ import java.util.Set;
 public interface WharfResolverMarshaller {
 
     /**
-     * The default path where to store <b>ALL</b> resolvers that were ever used by this cache.
-     */
-    public String getResolversFilePath();
-
-
-    /**
      * Save the wharf resolver meatadatas as a serialized object.
      *
      * @param baseDir                The basedir of where to store the serialized file.
