@@ -199,6 +199,13 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
         return lockFactory;
     }
 
+    public void setLockFactory(LockHolderFactory lockFactory) {
+        if (this.lockFactory != null) {
+            WharfUtils.closeQuietly(this.lockFactory);
+        }
+        this.lockFactory = lockFactory;
+    }
+
     public CacheMetadataHandler getMetadataHandler() {
         if (metadataHandler == null) {
             metadataHandler = new CacheMetadataHandler(getBasedir(), getLockFactory());
