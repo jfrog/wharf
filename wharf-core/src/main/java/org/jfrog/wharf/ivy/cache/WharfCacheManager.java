@@ -53,6 +53,9 @@ import org.apache.ivy.util.Message;
 import org.jfrog.wharf.ivy.lock.LockHolderFactory;
 import org.jfrog.wharf.ivy.lock.NioFileLockFactory;
 import org.jfrog.wharf.ivy.lock.SimpleFileLockFactory;
+import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
+import org.jfrog.wharf.ivy.marshall.api.MrmMarshaller;
+import org.jfrog.wharf.ivy.marshall.api.WharfResolverMarshaller;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
 import org.jfrog.wharf.ivy.model.WharfResolverMetadata;
@@ -113,6 +116,10 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
 
     private LockHolderFactory lockFactory;
 
+    private WharfResolverMarshaller wharfResolverMarshaller;
+
+    private MrmMarshaller mrmMarshaller;
+
     public static WharfCacheManager newInstance(IvySettings ivySettings) {
         return newInstance(ivySettings, null, null);
     }
@@ -171,6 +178,8 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
             WharfUtils.closeQuietly(lockFactory);
         }
         lockFactory = null;
+        mrmMarshaller = null;
+        wharfResolverMarshaller = null;
         metadataHandler = null;
         resolverHandler = null;
     }
@@ -206,16 +215,38 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
         this.lockFactory = lockFactory;
     }
 
+    public MrmMarshaller getMrmMarshaller() {
+        if (mrmMarshaller == null) {
+            mrmMarshaller = MarshallerFactory.createMetadataMarshaller(getLockFactory());
+        }
+        return mrmMarshaller;
+    }
+
+    public void setMrmMarshaller(MrmMarshaller mrmMarshaller) {
+        this.mrmMarshaller = mrmMarshaller;
+    }
+
+    public WharfResolverMarshaller getWharfResolverMarshaller() {
+        if (wharfResolverMarshaller == null) {
+            wharfResolverMarshaller = MarshallerFactory.createWharfResolverMarshaller(getLockFactory());
+        }
+        return wharfResolverMarshaller;
+    }
+
+    public void setWharfResolverMarshaller(WharfResolverMarshaller wharfResolverMarshaller) {
+        this.wharfResolverMarshaller = wharfResolverMarshaller;
+    }
+
     public CacheMetadataHandler getMetadataHandler() {
         if (metadataHandler == null) {
-            metadataHandler = new CacheMetadataHandler(getBasedir(), getLockFactory());
+            metadataHandler = new CacheMetadataHandler(getBasedir(), getLockFactory(), getMrmMarshaller());
         }
         return metadataHandler;
     }
 
     public ResolverHandler getResolverHandler() {
         if (resolverHandler == null) {
-            resolverHandler = new ResolverHandler(getBasedir(), settings, getLockFactory());
+            resolverHandler = new ResolverHandler(getBasedir(), settings, getWharfResolverMarshaller());
         }
         return resolverHandler;
     }

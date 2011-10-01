@@ -18,13 +18,11 @@
 
 package org.jfrog.wharf.ivy.cache;
 
-
 import org.apache.ivy.core.IvyPatternHelper;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.jfrog.wharf.ivy.lock.LockHolder;
 import org.jfrog.wharf.ivy.lock.LockHolderFactory;
-import org.jfrog.wharf.ivy.marshall.api.MarshallerFactory;
 import org.jfrog.wharf.ivy.marshall.api.MrmMarshaller;
 import org.jfrog.wharf.ivy.model.ArtifactMetadata;
 import org.jfrog.wharf.ivy.model.ModuleRevisionMetadata;
@@ -40,9 +38,9 @@ public class CacheMetadataHandler {
     private final File baseDir;
     private final LockHolderFactory lockFactory;
 
-    public CacheMetadataHandler(File baseDir, LockHolderFactory lockFactory) {
+    public CacheMetadataHandler(File baseDir, LockHolderFactory lockFactory, MrmMarshaller mrmMarshaller) {
         this.baseDir = baseDir;
-        this.mrmMarshaller = MarshallerFactory.createMetadataMarshaller(lockFactory);
+        this.mrmMarshaller = mrmMarshaller;
         this.lockFactory = lockFactory;
     }
 
