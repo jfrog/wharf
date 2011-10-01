@@ -396,21 +396,6 @@ public class WharfCacheManager implements ModuleMetadataManager, RepositoryCache
         return new File(getBasedir() + "/filestore", checksum.substring(0, 3) + "/" + checksum);
     }
 
-    private ArtifactMetadata findArtifactMetadata(Artifact artifact, ArtifactOrigin origin) {
-        ModuleRevisionMetadata mrm =
-                getMetadataHandler().getModuleRevisionMetadata(artifact.getModuleRevisionId());
-        if (mrm == null) {
-            return null;
-        }
-        ArtifactMetadata artMd = new ArtifactMetadata(artifact, origin);
-        for (ArtifactMetadata artifactMetadata : mrm.artifactMetadata) {
-            if (artifactMetadata.equals(artMd)) {
-                return artifactMetadata;
-            }
-        }
-        return null;
-    }
-
     /**
      * Returns a File object pointing to where the artifact can be found on the local file system, using or not the
      * original location depending on the availability of origin information provided as parameter and the setting of
