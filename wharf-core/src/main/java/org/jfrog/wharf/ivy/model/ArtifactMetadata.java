@@ -24,6 +24,7 @@ import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
+import java.io.Serializable;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +32,7 @@ import java.util.Map;
 /**
  * @author Tomer Cohen
  */
-public class ArtifactMetadata {
+public class ArtifactMetadata implements Serializable {
     public static final String WHARF_RESOLVER_ID = "wharf:resolverId";
     public String resolverId;
     public String artResolverId;

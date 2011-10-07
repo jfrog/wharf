@@ -19,13 +19,14 @@
 package org.jfrog.wharf.ivy.model;
 
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
  * @author Tomer Cohen
  */
-public class ModuleRevisionMetadata {
+public class ModuleRevisionMetadata implements Serializable {
 
     public String latestResolvedRevision;
     public String latestResolvedTime;

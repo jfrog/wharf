@@ -24,13 +24,14 @@ import org.apache.ivy.plugins.resolver.BasicResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.jfrog.wharf.ivy.util.WharfUtils;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @author Tomer Cohen
  */
-public class WharfResolverMetadata {
+public class WharfResolverMetadata implements Serializable {
 
     public String id;
 
