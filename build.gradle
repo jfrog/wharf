@@ -84,6 +84,10 @@ subprojects {
         uploadDescriptor = true
     }
 
+    artifactoryPublish {
+        dependsOn: configurations.extraPublish
+    }
+
     classes.dependsOn(versionProperties)
 }
 
