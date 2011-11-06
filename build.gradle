@@ -85,7 +85,7 @@ subprojects {
     }
 
     artifactoryPublish {
-        dependsOn: configurations.extraPublish
+        dependsOn: sourceJar
     }
 
     classes.dependsOn(versionProperties)
