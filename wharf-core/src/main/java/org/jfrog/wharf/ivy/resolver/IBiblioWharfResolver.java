@@ -105,7 +105,7 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
                 ModuleRevisionMetadata metadata = getCacheProperties(mrid);
                 if (metadata != null && snapshotTimeout.isCacheTimedOut(getLastResolvedTime(metadata))) {
                     for (ArtifactMetadata artifactMetadata : metadata.getArtifactMetadata()) {
-                        if (artifactMetadata.location.contains(snapshotVersion)) {
+                        if (artifactMetadata.location.contains(snapshotVersion) && artifactMetadata.id.contains("#ivy#")) {
                             ivyFileRef = WharfUtils.convertToWharfResource(this, artifactMetadata, snapshotVersion);
                             break;
                         }
@@ -272,7 +272,7 @@ public class IBiblioWharfResolver extends IBiblioResolver implements WharfResolv
     private long getLastResolvedTime(ModuleRevisionId mrid) {
         RepositoryCacheManager cacheManager = getRepositoryCacheManager();
         if (cacheManager instanceof ModuleMetadataManager) {
-            return ((ModuleMetadataManager)cacheManager).getLastResolvedTime(mrid);
+            return ((ModuleMetadataManager) cacheManager).getLastResolvedTime(mrid);
         }
         return 0L;
     }

@@ -76,14 +76,8 @@ subprojects {
         extraPublish sourceJar
     }
 
-    artifactoryPublish {
-        dependsOn: build
-    }
-
     task versionProperties(type: WriteVersionProperties) {
-        //For 1.0-m-4
-        //propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
-        propertiesFile = new File(sourceSets.main.classesDir, "org/jfrog/wharf/${project.name}.properties")
+        propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
     }
 
     uploadArchives {
