@@ -84,10 +84,6 @@ subprojects {
         uploadDescriptor = true
     }
 
-    artifactoryPublish {
-        dependsOn: sourceJar
-    }
-
     classes.dependsOn(versionProperties)
 }
 
