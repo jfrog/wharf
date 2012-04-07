@@ -16,6 +16,17 @@
  * /
  */
 
+buildscript {
+    repositories {
+        maven {
+            url "http://repo.jfrog.org/artifactory/gradle-plugins"
+        }
+        dependencies {
+            classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.0.12')
+        }
+    }
+}
+
 import org.jfrog.build.Version
 import org.jfrog.build.WriteVersionProperties
 
@@ -26,16 +37,9 @@ allprojects {
     group = 'org.jfrog.wharf'
     apply plugin: 'idea'
     apply plugin: 'artifactory'
-
-    idea {
-        project {
-            javaVersion = '1.6'
-        }
-    }
 }
 
 artifactory {
-    //contextUrl = 'http://fredsvaio:8081/artifactory'
     contextUrl = 'http://repo.jfrog.org/artifactory'
     publish {
         defaults {
@@ -48,6 +52,24 @@ artifactory {
     resolve {
         repository {
             repoKey = 'gradle'
+        }
+    }
+}
+
+artifactoryPublish.skip = true
+
+idea {
+    project {
+        jdkName = '1.6'
+        languageLevel = '1.6'
+        wildcards += '?*.gradle'
+        ipr {
+            withXml { provider ->
+                def node = provider.asNode()
+                // Use git
+                def vcsConfig = node.component.find { it.'@name' == 'VcsDirectoryMappings' }
+                vcsConfig.mapping[0].'@vcs' = 'Git'
+            }
         }
     }
 }
@@ -81,9 +103,7 @@ subprojects {
     }
 
     task versionProperties(type: WriteVersionProperties) {
-        //For 1.0-m-4
-        //propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
-        propertiesFile = new File(sourceSets.main.classesDir, "org/jfrog/wharf/${project.name}.properties")
+        propertiesFile = new File(sourceSets.main.output.classesDir, "org/jfrog/wharf/${project.name}.properties")
     }
 
     uploadArchives {
